@@ -1,164 +1,283 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>SKVIP 彩球預測</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <!-- Tesseract OCR -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
   <style>
     :root {
-      --bg: #0f1117;
-      --card: #1a1d27;
-      --card2: #22263a;
-      --accent: #f5c518;
-      --accent2: #e05c5c;
-      --accent3: #4caf8a;
+      --bg: #0d0f1a;
+      --card: #161928;
+      --card2: #1e2235;
+      --border: #2a2f4a;
       --text: #e8eaf6;
-      --muted: #8891a8;
-      --border: #2e3250;
-      --red-ball: #e05c5c;
-      --blue-ball: #4a8fe8;
-      --green-ball: #4caf8a;
+      --muted: #7b82a8;
+
+      /* 六合彩 紅藍 */
+      --hk-main: #e63946;
+      --hk-sub: #1d3f8a;
+      --hk-grad: linear-gradient(135deg, #e63946, #c1121f);
+
+      /* 大樂透 黃藍 */
+      --lotto-main: #f9c01e;
+      --lotto-sub: #1565c0;
+      --lotto-grad: linear-gradient(135deg, #f9c01e, #f0a500);
+
+      /* 539 橘色 */
+      --lottery539-main: #ff6b00;
+      --lottery539-sub: #e63946;
+      --lottery539-grad: linear-gradient(135deg, #ff6b00, #ff9500);
+
+      --active: var(--hk-main);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', 'PingFang TC', sans-serif; min-height: 100vh; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','PingFang TC','Noto Sans TC',sans-serif; display: flex; flex-direction: column; }
 
-    /* Header */
-    .header { background: linear-gradient(135deg, #1a1d27, #0f1117); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-    .logo { font-size: 1.2rem; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
-    .logo span { color: var(--text); font-weight: 400; font-size: 0.9rem; }
-    .user-area { display: flex; align-items: center; gap: 10px; }
-    .btn-login { background: var(--accent); color: #000; border: none; padding: 7px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
-    .btn-logout { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
-    .user-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); }
-    .user-name { font-size: 0.85rem; color: var(--muted); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* ── HEADER ── */
+    .header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .logo-wrap { display: flex; align-items: center; gap: 8px; }
+    .logo-balls { display: flex; gap: 3px; }
+    .logo-ball { width: 10px; height: 10px; border-radius: 50%; }
+    .logo-text { font-size: 1.1rem; font-weight: 900; letter-spacing: 1px; }
+    .logo-text span { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .btn-login { background: var(--hk-main); color: #fff; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--active); cursor: pointer; }
+    .btn-logout { background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 10px; border-radius: 16px; font-size: 0.75rem; cursor: pointer; }
+    .admin-badge { background: var(--hk-main); color: #fff; font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
 
-    /* Tabs */
-    .tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { flex: 1; min-width: 100px; padding: 14px 8px; text-align: center; font-size: 0.9rem; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .tab-content { display: none; padding: 16px; max-width: 800px; margin: 0 auto; }
-    .tab-content.active { display: block; }
+    /* ── LOTTERY TYPE TABS ── */
+    .type-tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .type-tab {
+      flex: 1; padding: 10px 4px; text-align: center;
+      font-size: 0.82rem; font-weight: 700; color: var(--muted);
+      cursor: pointer; border-bottom: 3px solid transparent;
+      transition: all 0.2s; position: relative;
+    }
+    .type-tab.active-hk { color: var(--hk-main); border-bottom-color: var(--hk-main); }
+    .type-tab.active-lotto { color: var(--lotto-main); border-bottom-color: var(--lotto-main); }
+    .type-tab.active-539 { color: var(--lottery539-main); border-bottom-color: var(--lottery539-main); }
+    .lottery-icon { font-size: 1.1rem; display: block; margin-bottom: 2px; }
 
-    /* Cards */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
-    .card-title { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-    .card-title .icon { font-size: 1rem; }
+    /* ── SCROLL AREA ── */
+    .scroll-area { flex: 1; overflow-y: auto; padding: 14px 14px 80px; }
+    .scroll-area::-webkit-scrollbar { width: 4px; }
+    .scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-    /* Balls */
-    .ball { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; font-size: 0.8rem; font-weight: 700; margin: 3px; }
-    .ball-red { background: radial-gradient(circle at 35% 35%, #f47, var(--red-ball)); color: #fff; box-shadow: 0 2px 6px rgba(224,92,92,0.4); }
-    .ball-blue { background: radial-gradient(circle at 35% 35%, #7af, var(--blue-ball)); color: #fff; box-shadow: 0 2px 6px rgba(74,143,232,0.4); }
-    .ball-green { background: radial-gradient(circle at 35% 35%, #7de, var(--green-ball)); color: #fff; box-shadow: 0 2px 6px rgba(76,175,138,0.4); }
-    .ball-gold { background: radial-gradient(circle at 35% 35%, #ffe066, var(--accent)); color: #000; box-shadow: 0 2px 6px rgba(245,197,24,0.4); }
-    .ball-gray { background: radial-gradient(circle at 35% 35%, #aaa, #555); color: #fff; }
-    .ball-sm { width: 28px; height: 28px; font-size: 0.72rem; margin: 2px; }
-    .balls-row { display: flex; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      display: flex;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 8px 4px 6px; cursor: pointer; color: var(--muted);
+      font-size: 0.68rem; font-weight: 600; gap: 3px; transition: color 0.2s;
+    }
+    .nav-item .nav-icon { font-size: 1.3rem; line-height: 1; }
+    .nav-item.active { color: var(--active); }
+    .nav-item.active .nav-icon { transform: translateY(-1px); }
 
-    /* Prediction sections */
-    .pred-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-right: 6px; }
-    .badge-hot { background: rgba(224,92,92,0.2); color: var(--red-ball); border: 1px solid var(--red-ball); }
-    .badge-cold { background: rgba(74,143,232,0.2); color: var(--blue-ball); border: 1px solid var(--blue-ball); }
-    .badge-gold { background: rgba(245,197,24,0.2); color: var(--accent); border: 1px solid var(--accent); }
-    .badge-green { background: rgba(76,175,138,0.2); color: var(--accent3); border: 1px solid var(--accent3); }
+    /* ── CARDS ── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .card-title { font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .title-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-    /* Frequency bar */
-    .freq-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
-    .freq-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
-    .freq-bar-wrap { flex: 1; background: var(--card2); border-radius: 4px; height: 8px; overflow: hidden; }
-    .freq-bar { height: 8px; border-radius: 4px; transition: width 0.5s ease; }
-    .freq-count { font-size: 0.72rem; color: var(--muted); width: 24px; text-align: right; flex-shrink: 0; }
+    /* ── LATEST DRAW CARD ── */
+    .latest-card {
+      border-radius: 16px; padding: 16px; margin-bottom: 14px;
+      position: relative; overflow: hidden;
+    }
+    .latest-card::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 120px; height: 120px; border-radius: 50%;
+      opacity: 0.08; background: #fff;
+    }
+    .latest-period { font-size: 0.75rem; opacity: 0.8; margin-bottom: 8px; }
+    .latest-title { font-size: 0.95rem; font-weight: 800; margin-bottom: 12px; }
+    .latest-balls { display: flex; flex-wrap: wrap; gap: 6px; }
 
-    /* Chart */
-    .chart-wrap { position: relative; height: 220px; margin-top: 10px; }
+    /* ── BALLS ── */
+    .ball {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.82rem; font-weight: 800;
+      position: relative; flex-shrink: 0;
+    }
+    .ball::after {
+      content: ''; position: absolute; top: 5px; left: 8px;
+      width: 10px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,0.35); transform: rotate(-30deg);
+    }
+    .ball-hk { background: radial-gradient(circle at 35% 30%, #ff6b6b, #c1121f); color: #fff; box-shadow: 0 3px 8px rgba(198,18,31,0.4); }
+    .ball-hk-sp { background: radial-gradient(circle at 35% 30%, #ffd700, #e6a800); color: #000; box-shadow: 0 3px 8px rgba(230,168,0,0.4); }
+    .ball-lotto { background: radial-gradient(circle at 35% 30%, #fff176, #f0a500); color: #1a1a1a; box-shadow: 0 3px 8px rgba(240,165,0,0.4); }
+    .ball-lotto-sp { background: radial-gradient(circle at 35% 30%, #64b5f6, #1565c0); color: #fff; box-shadow: 0 3px 8px rgba(21,101,192,0.4); }
+    .ball-539 { background: radial-gradient(circle at 35% 30%, #ffb347, #e65c00); color: #fff; box-shadow: 0 3px 8px rgba(230,92,0,0.4); }
+    .ball-gray { background: radial-gradient(circle at 35% 30%, #888, #444); color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .ball-green { background: radial-gradient(circle at 35% 30%, #69db7c, #2f9e44); color: #fff; box-shadow: 0 3px 8px rgba(47,158,68,0.4); }
+    .ball-purple { background: radial-gradient(circle at 35% 30%, #cc5de8, #862e9c); color: #fff; box-shadow: 0 3px 8px rgba(134,46,156,0.4); }
+    .ball-sm { width: 30px; height: 30px; font-size: 0.72rem; }
+    .ball-sm::after { top: 4px; left: 6px; width: 8px; height: 5px; }
+    .balls-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
 
-    /* AI Recommend */
-    .ai-box { background: linear-gradient(135deg, rgba(245,197,24,0.08), rgba(76,175,138,0.08)); border: 1px solid rgba(245,197,24,0.3); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
-    .ai-title { font-size: 0.8rem; color: var(--accent); margin-bottom: 8px; font-weight: 700; }
-    .btn { padding: 10px 20px; border-radius: 24px; border: none; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 8px; }
-    .btn-primary { background: linear-gradient(135deg, var(--accent), #e0a800); color: #000; }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
-    .btn-danger { background: rgba(224,92,92,0.15); color: var(--red-ball); border: 1px solid var(--red-ball); }
-    .btn-sm { padding: 7px 14px; font-size: 0.8rem; width: auto; margin-top: 0; }
+    /* ── PREDICTION SECTION ── */
+    .pred-section { margin-bottom: 14px; }
+    .pred-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .pred-tag { padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
+    .tag-zuche { background: rgba(249,192,30,0.15); color: var(--lotto-main); border: 1px solid var(--lotto-main); }
+    .tag-wubu { background: rgba(123,130,168,0.15); color: var(--muted); border: 1px solid var(--border); }
+    .tag-tail { background: rgba(76,209,138,0.15); color: #4cd18a; border: 1px solid #4cd18a; }
+    .tag-ai { background: rgba(130,80,255,0.15); color: #a680ff; border: 1px solid #a680ff; }
+    .tag-hot { background: rgba(230,57,70,0.15); color: var(--hk-main); border: 1px solid var(--hk-main); }
+    .tag-cold { background: rgba(21,101,192,0.15); color: #64b5f6; border: 1px solid #64b5f6; }
 
-    /* Input */
-    .input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; margin: 10px 0; }
-    .num-input { background: var(--card2); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1rem; font-weight: 700; text-align: center; padding: 10px 4px; width: 100%; }
-    .num-input:focus { outline: none; border-color: var(--accent); }
-    .num-input.selected { border-color: var(--accent); background: rgba(245,197,24,0.15); }
-    label.field-label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 6px; margin-top: 12px; }
-    input[type=text], input[type=number], select { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.9rem; padding: 10px 14px; width: 100%; }
-    input[type=text]:focus, input[type=number]:focus, select:focus { outline: none; border-color: var(--accent); }
+    /* ── CHART ── */
+    .chart-wrap { height: 200px; position: relative; margin-top: 8px; }
+    .range-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .range-row span { font-size: 0.78rem; color: var(--muted); }
+    input[type=range] { width: 100px; accent-color: var(--active); }
 
-    /* Section row */
-    .section-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .section-row h3 { font-size: 0.95rem; font-weight: 700; }
+    /* ── HISTORY ── */
+    .history-item { background: var(--card2); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .history-left { flex: 1; min-width: 0; }
+    .history-period { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+    .btn-del { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; font-size: 0.9rem; flex-shrink: 0; }
+    .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 0.85rem; }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 8px; }
 
-    /* History list */
-    .history-item { background: var(--card2); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
-    .history-period { font-size: 0.75rem; color: var(--muted); }
-    .history-date { font-size: 0.7rem; color: var(--muted); }
-    .btn-del { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 4px; }
-    .btn-del:hover { color: var(--red-ball); }
+    /* ── TAIL GRID ── */
+    .tail-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .tail-item { background: var(--card2); border-radius: 12px; padding: 8px 4px; text-align: center; }
+    .tail-num { font-size: 1.4rem; font-weight: 900; }
+    .tail-pct { font-size: 0.68rem; color: var(--muted); }
 
-    /* Range slider */
-    input[type=range] { width: 100%; accent-color: var(--accent); }
+    /* ── FREQ BARS ── */
+    .freq-list { display: flex; flex-direction: column; gap: 5px; }
+    .freq-row { display: flex; align-items: center; gap: 8px; }
+    .freq-ball { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; flex-shrink: 0; }
+    .freq-bar-wrap { flex: 1; background: var(--card2); border-radius: 4px; height: 7px; overflow: hidden; }
+    .freq-bar { height: 7px; border-radius: 4px; transition: width 0.6s ease; }
+    .freq-cnt { font-size: 0.68rem; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
 
-    /* OCR area */
-    .ocr-drop { border: 2px dashed var(--border); border-radius: 14px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
-    .ocr-drop:hover { border-color: var(--accent); }
-    .ocr-drop input[type=file] { display: none; }
-    .ocr-icon { font-size: 2.5rem; margin-bottom: 8px; }
-    .ocr-text { font-size: 0.85rem; color: var(--muted); }
-    .ocr-preview { max-width: 100%; border-radius: 10px; margin-top: 10px; max-height: 300px; }
-    .ocr-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
-    .ocr-table th { background: var(--card2); padding: 6px 8px; text-align: left; color: var(--muted); }
-    .ocr-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
-    .ocr-table tr:hover td { background: var(--card2); }
-    .ocr-table input { background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 4px 6px; width: 40px; text-align: center; }
-    .progress-bar { background: var(--card2); border-radius: 6px; height: 8px; margin: 10px 0; overflow: hidden; }
-    .progress-fill { background: linear-gradient(90deg, var(--accent), var(--accent3)); height: 8px; border-radius: 6px; transition: width 0.3s; }
+    /* ── BUTTONS ── */
+    .btn { padding: 12px 20px; border-radius: 24px; border: none; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; }
+    .btn:active { transform: scale(0.97); }
+    .btn-hk { background: var(--hk-grad); color: #fff; box-shadow: 0 4px 15px rgba(230,57,70,0.3); }
+    .btn-lotto { background: var(--lotto-grad); color: #1a1a1a; box-shadow: 0 4px 15px rgba(249,192,30,0.3); }
+    .btn-539 { background: var(--lottery539-grad); color: #fff; box-shadow: 0 4px 15px rgba(255,107,0,0.3); }
+    .btn-outline { background: none; border: 1px solid var(--border); color: var(--text); }
+    .btn-sm { padding: 8px 14px; font-size: 0.8rem; width: auto; }
+    .btn-danger-soft { background: rgba(230,57,70,0.1); color: var(--hk-main); border: 1px solid var(--hk-main); }
 
-    /* Check ticket */
-    .check-result { background: var(--card2); border-radius: 12px; padding: 14px; margin-top: 12px; text-align: center; }
-    .check-count { font-size: 2.5rem; font-weight: 900; color: var(--accent); }
-    .check-label { font-size: 0.85rem; color: var(--muted); }
+    /* ── INPUTS ── */
+    .field-label { font-size: 0.78rem; color: var(--muted); display: block; margin: 12px 0 6px; }
+    input[type=text], input[type=number], select, textarea {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: 0.9rem;
+      padding: 10px 14px; width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--active); }
+    textarea { resize: vertical; min-height: 100px; font-family: monospace; font-size: 0.82rem; }
 
-    /* Tail numbers */
-    .tail-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .tail-item { background: var(--card2); border-radius: 10px; padding: 8px 12px; text-align: center; min-width: 56px; }
-    .tail-num { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
-    .tail-pct { font-size: 0.7rem; color: var(--muted); }
+    /* ── BALL PICKER ── */
+    .ball-picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .pick-btn {
+      width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--border);
+      background: var(--card2); color: var(--text); font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .pick-btn:active { transform: scale(0.9); }
+    .pick-btn.selected-hk { border-color: var(--hk-main); background: rgba(230,57,70,0.2); color: var(--hk-main); }
+    .pick-btn.selected-lotto { border-color: var(--lotto-main); background: rgba(249,192,30,0.2); color: var(--lotto-main); }
+    .pick-btn.selected-539 { border-color: var(--lottery539-main); background: rgba(255,107,0,0.2); color: var(--lottery539-main); }
+    .pick-btn.selected-sp { border-color: #4cd18a; background: rgba(76,209,138,0.2); color: #4cd18a; }
+    .selected-display { font-size: 0.78rem; color: var(--muted); margin: 4px 0 8px; min-height: 18px; }
 
-    /* Toast */
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 0.85rem; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    /* ── CHECK RESULT ── */
+    .check-result { background: var(--card2); border-radius: 14px; padding: 16px; text-align: center; margin-top: 12px; }
+    .check-big { font-size: 3rem; font-weight: 900; line-height: 1; }
+    .check-msg { font-size: 1rem; font-weight: 700; margin-top: 6px; }
+    .check-sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── ADMIN ── */
+    .admin-panel { background: rgba(230,57,70,0.05); border: 1px solid rgba(230,57,70,0.2); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+    .admin-title { font-size: 0.88rem; font-weight: 700; color: var(--hk-main); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    /* ── LOGIN SCREEN ── */
+    .login-screen {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; padding: 24px;
+    }
+    .login-balls-anim { display: flex; gap: 10px; margin-bottom: 10px; }
+    .lb { width: 18px; height: 18px; border-radius: 50%; animation: bounce 1.2s ease-in-out infinite; }
+    .lb:nth-child(1) { background: #e63946; animation-delay: 0s; }
+    .lb:nth-child(2) { background: #f9c01e; animation-delay: 0.15s; }
+    .lb:nth-child(3) { background: #ff6b00; animation-delay: 0.3s; }
+    .lb:nth-child(4) { background: #4cd18a; animation-delay: 0.45s; }
+    .lb:nth-child(5) { background: #a680ff; animation-delay: 0.6s; }
+    @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .login-title { font-size: 2rem; font-weight: 900; letter-spacing: 2px; }
+    .login-title .sk { color: var(--hk-main); }
+    .login-title .vip { color: var(--lotto-main); }
+    .login-sub { color: var(--muted); font-size: 0.88rem; text-align: center; line-height: 1.6; }
+    .btn-google {
+      background: #fff; color: #333; border: none;
+      padding: 14px 28px; border-radius: 28px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3); width: 100%; max-width: 280px;
+      justify-content: center;
+    }
+    .btn-google:active { transform: scale(0.97); }
+    .g-icon { width: 20px; height: 20px; }
+
+    /* ── OVERLAY ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+    .overlay.hidden { display: none; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--active); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .overlay-text { font-size: 0.88rem; color: var(--muted); }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 18px; font-size: 0.82rem; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
     .toast.show { opacity: 1; }
 
-    /* Disclaimer */
-    .disclaimer { font-size: 0.7rem; color: var(--muted); text-align: center; padding: 8px 16px 20px; line-height: 1.5; }
+    /* ── DISCLAIMER ── */
+    .disclaimer { font-size: 0.68rem; color: var(--muted); text-align: center; padding: 8px; opacity: 0.6; }
 
-    /* Loading overlay */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
-    .overlay.hidden { display: none; }
-    .spinner { width: 44px; height: 44px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .overlay-text { color: var(--text); font-size: 0.9rem; }
+    /* ── PAGE SECTIONS ── */
+    .page { display: none; }
+    .page.active { display: block; }
 
-    /* Login screen */
-    .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; gap: 20px; padding: 24px; }
-    .login-logo { font-size: 3rem; font-weight: 900; color: var(--accent); letter-spacing: 2px; }
-    .login-sub { color: var(--muted); font-size: 0.9rem; text-align: center; line-height: 1.6; }
-    .btn-google { background: #fff; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 28px; border-radius: 28px; border: none; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); width: 100%; max-width: 300px; }
-    .btn-google img { width: 22px; }
+    /* ── SECTION DIVIDER ── */
+    .section-title { font-size: 0.82rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 10px; padding-left: 4px; }
 
-    @media (max-width: 480px) {
-      .tab { font-size: 0.82rem; padding: 12px 6px; min-width: 85px; }
-      .ball { width: 32px; height: 32px; font-size: 0.75rem; }
+    @media (min-width: 600px) {
+      .scroll-area { max-width: 600px; margin: 0 auto; }
     }
   </style>
 </head>
@@ -170,245 +289,224 @@
   <div class="overlay-text" id="overlay-text">載入中...</div>
 </div>
 
-<!-- Header -->
-<div class="header">
-  <div class="logo">SKVIP <span>彩球預測</span></div>
-  <div class="user-area" id="user-area">
-    <button class="btn-login" id="btn-login" onclick="signIn()">Google 登入</button>
-  </div>
-</div>
-
 <!-- Login Screen -->
 <div class="login-screen" id="login-screen">
-  <div class="login-logo">⚽ SKVIP</div>
-  <div style="font-size:1.1rem;font-weight:700;">彩球智慧預測平台</div>
-  <div class="login-sub">請使用 Google 帳號登入<br>資料雲端同步，手機電腦都能用</div>
+  <div class="login-balls-anim">
+    <div class="lb"></div><div class="lb"></div><div class="lb"></div><div class="lb"></div><div class="lb"></div>
+  </div>
+  <div class="login-title"><span class="sk">SK</span><span class="vip">VIP</span></div>
+  <div style="font-size:1rem;font-weight:700;letter-spacing:1px;">彩球智慧預測</div>
+  <div class="login-sub">雲端資料同步<br>六合彩 ・ 大樂透 ・ 今彩539</div>
   <button class="btn-google" onclick="signIn()">
-    <img src="https://www.google.com/favicon.ico" alt="G">
+    <svg class="g-icon" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
     使用 Google 帳號登入
   </button>
   <div class="disclaimer">本平台所有分析僅供娛樂參考，不保證中獎</div>
 </div>
 
 <!-- Main App -->
-<div id="main-app" style="display:none;">
-  <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('hk')">🇭🇰 六合彩</div>
-    <div class="tab" onclick="switchTab('lotto')">🎯 大樂透</div>
-    <div class="tab" onclick="switchTab('539')">5️⃣ 今彩539</div>
-    <div class="tab" onclick="switchTab('import')">📥 匯入資料</div>
-    <div class="tab" onclick="switchTab('check')">🎟 對獎</div>
-  </div>
+<div id="main-app" style="display:none; height:100%; display:none; flex-direction:column;">
 
-  <!-- HK Tab -->
-  <div class="tab-content active" id="tab-hk">
-    <div class="card">
-      <div class="card-title"><span class="icon">🤖</span> AI 智慧推薦</div>
-      <div class="ai-box">
-        <div class="ai-title">推薦號碼組合</div>
-        <div id="hk-ai-balls" class="balls-row"></div>
-        <div class="pred-label">特別號</div>
-        <div id="hk-ai-special" class="balls-row"></div>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo-balls">
+        <div class="logo-ball" style="background:var(--hk-main)"></div>
+        <div class="logo-ball" style="background:var(--lotto-main)"></div>
+        <div class="logo-ball" style="background:var(--lottery539-main)"></div>
       </div>
-      <div class="pred-label"><span class="badge badge-gold">🚗 座車</span> 最可能出現的 2 顆</div>
-      <div id="hk-zuche" class="balls-row"></div>
-      <div class="pred-label"><span class="badge badge-green">🔢 尾號推薦</span> 特別號尾數</div>
-      <div id="hk-tail" class="tail-grid"></div>
-      <button class="btn btn-primary" onclick="generatePred('hk')">🔄 重新分析推薦</button>
+      <div class="logo-text">SKVIP <span>彩球預測</span></div>
     </div>
-
-    <div class="card">
-      <div class="card-title"><span class="icon">🔥</span> 熱門 / 冷門號碼</div>
-      <div class="pred-label"><span class="badge badge-hot">熱門 Top 10</span></div>
-      <div id="hk-hot" class="balls-row"></div>
-      <div class="pred-label"><span class="badge badge-cold">冷門 Top 10</span></div>
-      <div id="hk-cold" class="balls-row"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span class="icon">📈</span> 號碼走勢圖</div>
-      <div class="section-row">
-        <span style="font-size:0.8rem;color:var(--muted);">顯示最近 <span id="hk-range-val">30</span> 期</span>
-        <input type="range" min="10" max="100" value="30" style="width:120px;" oninput="updateRange('hk',this.value)">
-      </div>
-      <div class="chart-wrap"><canvas id="hk-chart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span class="icon">📋</span> 開獎紀錄</div>
-      <div id="hk-history"></div>
+    <div class="header-right" id="header-right">
+      <button class="btn-login" onclick="signIn()">登入</button>
     </div>
   </div>
 
-  <!-- Lotto Tab -->
-  <div class="tab-content" id="tab-lotto">
-    <div class="card">
-      <div class="card-title"><span class="icon">🤖</span> AI 智慧推薦</div>
-      <div class="ai-box">
-        <div class="ai-title">推薦號碼組合</div>
-        <div id="lotto-ai-balls" class="balls-row"></div>
-      </div>
-      <div class="pred-label"><span class="badge badge-gold">🚗 座車</span> 最可能出現的 2 顆</div>
-      <div id="lotto-zuche" class="balls-row"></div>
-      <div class="pred-label"><span class="badge badge-green">🔢 尾號推薦</span> 特別號尾數</div>
-      <div id="lotto-tail" class="tail-grid"></div>
-      <button class="btn btn-primary" onclick="generatePred('lotto')">🔄 重新分析推薦</button>
+  <!-- Lottery Type Tabs -->
+  <div class="type-tabs" id="type-tabs">
+    <div class="type-tab active-hk" onclick="switchType('hk',this)">
+      <span class="lottery-icon">🎱</span>六合彩
     </div>
-
-    <div class="card">
-      <div class="card-title"><span class="icon">🔥</span> 熱門 / 冷門號碼</div>
-      <div class="pred-label"><span class="badge badge-hot">熱門 Top 10</span></div>
-      <div id="lotto-hot" class="balls-row"></div>
-      <div class="pred-label"><span class="badge badge-cold">冷門 Top 10</span></div>
-      <div id="lotto-cold" class="balls-row"></div>
+    <div class="type-tab" onclick="switchType('lotto',this)">
+      <span class="lottery-icon">🎯</span>大樂透
     </div>
-
-    <div class="card">
-      <div class="card-title"><span class="icon">📈</span> 號碼走勢圖</div>
-      <div class="section-row">
-        <span style="font-size:0.8rem;color:var(--muted);">顯示最近 <span id="lotto-range-val">30</span> 期</span>
-        <input type="range" min="10" max="100" value="30" style="width:120px;" oninput="updateRange('lotto',this.value)">
-      </div>
-      <div class="chart-wrap"><canvas id="lotto-chart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span class="icon">📋</span> 開獎紀錄</div>
-      <div id="lotto-history"></div>
+    <div class="type-tab" onclick="switchType('539',this)">
+      <span class="lottery-icon">🍊</span>今彩539
     </div>
   </div>
 
-  <!-- 539 Tab -->
-  <div class="tab-content" id="tab-539">
-    <div class="card">
-      <div class="card-title"><span class="icon">🤖</span> AI 智慧推薦</div>
-      <div class="ai-box">
-        <div class="ai-title">推薦號碼組合</div>
-        <div id="539-ai-balls" class="balls-row"></div>
+  <!-- Scroll Area -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- ── ANALYSIS PAGE ── -->
+    <div class="page active" id="page-analysis">
+
+      <!-- Latest Draw -->
+      <div class="latest-card" id="latest-card">
+        <div class="latest-period" id="latest-period">最新開獎</div>
+        <div class="latest-title" id="latest-title">尚無資料</div>
+        <div class="latest-balls" id="latest-balls"></div>
       </div>
-      <div class="pred-label"><span class="badge badge-gold">🚗 座車</span> 最可能出現的 2 顆</div>
-      <div id="539-zuche" class="balls-row"></div>
-      <div class="pred-label"><span class="badge badge-danger">❌ 五不出</span> 最不可能出現的 5 顆</div>
-      <div id="539-wubuchu" class="balls-row"></div>
-      <button class="btn btn-primary" onclick="generatePred('539')">🔄 重新分析推薦</button>
+
+      <!-- AI Recommend -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="title-dot" id="ai-dot" style="background:var(--hk-main)"></div>
+            🤖 AI 智慧推薦
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="generateAll()" style="font-size:0.75rem;padding:6px 12px;border-radius:14px;">重新分析</button>
+        </div>
+        <div class="pred-label"><span class="pred-tag tag-ai">AI推薦</span> 加權機率號碼</div>
+        <div class="balls-row" id="ai-recommend"></div>
+        <div id="ai-special-row" style="display:none;">
+          <div class="pred-label" style="margin-top:10px;"><span class="pred-tag tag-tail">特別號</span></div>
+          <div class="balls-row" id="ai-special"></div>
+        </div>
+
+        <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-zuche">🚗 座車</span> 最可能出現的 2 顆</div>
+        <div class="balls-row" id="ai-zuche"></div>
+
+        <div id="wubuchu-row" style="display:none;">
+          <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-wubu">❌ 五不出</span> 最不可能的 5 顆</div>
+          <div class="balls-row" id="ai-wubuchu"></div>
+        </div>
+
+        <div id="tail-row" style="display:none;">
+          <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-tail">🔢 尾號推薦</span> 特別號尾數分析</div>
+          <div class="tail-grid" id="ai-tail"></div>
+        </div>
+      </div>
+
+      <!-- Hot / Cold -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="title-dot" style="background:#e63946"></div>
+            🔥 熱門 / 冷門
+          </div>
+        </div>
+        <div class="pred-label"><span class="pred-tag tag-hot">熱門</span> 出現頻率最高 Top 10</div>
+        <div class="balls-row" id="hot-balls" style="margin-bottom:12px;"></div>
+        <div class="pred-label"><span class="pred-tag tag-cold">冷門</span> 出現頻率最低 Top 10</div>
+        <div class="balls-row" id="cold-balls"></div>
+      </div>
+
+      <!-- Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="title-dot" style="background:#a680ff"></div>
+            📈 號碼走勢
+          </div>
+        </div>
+        <div class="range-row">
+          <span>最近 <strong id="range-val">30</strong> 期</span>
+          <input type="range" min="10" max="100" value="30" id="range-input" oninput="onRangeChange(this.value)">
+        </div>
+        <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
+      </div>
+
+      <div class="disclaimer">⚠️ 號碼分析僅供娛樂參考，不保證中獎，請理性購彩</div>
     </div>
 
-    <div class="card">
-      <div class="card-title"><span class="icon">🔥</span> 熱門 / 冷門號碼</div>
-      <div class="pred-label"><span class="badge badge-hot">熱門 Top 10</span></div>
-      <div id="539-hot" class="balls-row"></div>
-      <div class="pred-label"><span class="badge badge-cold">冷門 Top 10</span></div>
-      <div id="539-cold" class="balls-row"></div>
+    <!-- ── HISTORY PAGE ── -->
+    <div class="page" id="page-history">
+      <div class="section-title">📋 開獎紀錄</div>
+      <div id="history-list"></div>
     </div>
 
-    <div class="card">
-      <div class="card-title"><span class="icon">📈</span> 號碼走勢圖</div>
-      <div class="section-row">
-        <span style="font-size:0.8rem;color:var(--muted);">顯示最近 <span id="539-range-val">30</span> 期</span>
-        <input type="range" min="10" max="100" value="30" style="width:120px;" oninput="updateRange('539',this.value)">
+    <!-- ── CHECK PAGE ── -->
+    <div class="page" id="page-check">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><div class="title-dot" id="check-dot" style="background:var(--hk-main)"></div>🎟 對獎</div>
+        </div>
+        <div class="field-label">點擊選擇你的號碼</div>
+        <div class="ball-picker" id="check-picker"></div>
+        <div id="check-sp-wrap" style="display:none;">
+          <div class="field-label">特別號</div>
+          <div class="ball-picker" id="check-sp-picker"></div>
+        </div>
+        <div class="selected-display" id="check-display"></div>
+        <div class="field-label">對照期號（留空 = 最新一期）</div>
+        <input type="text" id="check-period-input" placeholder="例：115062">
+        <button class="btn btn-hk" id="check-btn" onclick="checkTicket()" style="margin-top:12px;">🎯 開始對獎</button>
+        <div id="check-result"></div>
       </div>
-      <div class="chart-wrap"><canvas id="539-chart"></canvas></div>
     </div>
 
-    <div class="card">
-      <div class="card-title"><span class="icon">📋</span> 開獎紀錄</div>
-      <div id="539-history"></div>
-    </div>
-  </div>
+    <!-- ── ADMIN PAGE ── -->
+    <div class="page" id="page-admin">
+      <div class="admin-panel">
+        <div class="admin-title">🔐 管理員後台</div>
 
-  <!-- Import Tab -->
-  <div class="tab-content" id="tab-import">
-    <div class="card">
-      <div class="card-title"><span class="icon">📥</span> 匯入開獎圖檔（OCR）</div>
-      <div class="ocr-drop" id="ocr-drop" onclick="document.getElementById('ocr-file').click()">
-        <input type="file" id="ocr-file" accept="image/*" onchange="handleOcrFile(event)">
-        <div class="ocr-icon">📷</div>
-        <div class="ocr-text">點擊上傳開獎單圖片<br><small>支援 JPG / PNG，手機可直接拍照</small></div>
-      </div>
-      <img id="ocr-img" class="ocr-preview" style="display:none;" />
-      <div id="ocr-progress" style="display:none;">
-        <div style="font-size:0.8rem;color:var(--muted);margin-top:10px;" id="ocr-status">辨識中...</div>
-        <div class="progress-bar"><div class="progress-fill" id="ocr-bar" style="width:0%"></div></div>
-      </div>
-      <div id="ocr-result-area" style="display:none;">
-        <div style="font-size:0.85rem;color:var(--accent);margin:10px 0 6px;">請選擇彩券類型並確認辨識結果：</div>
-        <select id="ocr-type" style="margin-bottom:10px;">
+        <div class="field-label">彩券類型</div>
+        <select id="admin-type" onchange="updateAdminType()">
           <option value="hk">香港六合彩</option>
           <option value="lotto">大樂透</option>
           <option value="539">今彩539</option>
         </select>
-        <div id="ocr-table-wrap"></div>
-        <button class="btn btn-primary" onclick="saveOcrData()" style="margin-top:12px;">✅ 確認儲存</button>
+
+        <div class="field-label">📝 批量輸入（每行一期）</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;">
+          格式：期號,號碼1 號碼2 號碼3 號碼4 號碼5 號碼6[,特別號][,日期]<br>
+          例：115062,03 08 19 27 35 38,49,2026/04/14
+        </div>
+        <textarea id="admin-bulk" placeholder="115062,03 08 19 27 35 38,49,2026/04/14&#10;115061,01 05 12 24 31 44,07,2026/04/11&#10;..."></textarea>
+        <button class="btn btn-hk" onclick="saveBulk()" style="margin-top:10px;">💾 批量儲存</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px;">🗂 單筆新增</div>
+        <div class="field-label">期號</div>
+        <input type="text" id="admin-period" placeholder="例：115062">
+        <div class="field-label">日期</div>
+        <input type="text" id="admin-date" placeholder="例：2026/04/14">
+        <div class="field-label">開獎號碼（點選）</div>
+        <div class="ball-picker" id="admin-picker"></div>
+        <div id="admin-sp-wrap" style="display:none;">
+          <div class="field-label">特別號</div>
+          <div class="ball-picker" id="admin-sp-picker"></div>
+        </div>
+        <div class="selected-display" id="admin-display"></div>
+        <button class="btn btn-hk" id="admin-save-btn" onclick="saveAdminSingle()" style="margin-top:10px;">💾 儲存</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">📋 已儲存紀錄（最近20筆）</div>
+        <div id="admin-history-list"></div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title"><span class="icon">✏️</span> 手動新增開獎號碼</div>
-      <label class="field-label">彩券類型</label>
-      <select id="manual-type" onchange="renderManualInputs()">
-        <option value="hk">香港六合彩</option>
-        <option value="lotto">大樂透</option>
-        <option value="539">今彩539</option>
-      </select>
-      <label class="field-label">期號</label>
-      <input type="text" id="manual-period" placeholder="例：115062">
-      <label class="field-label">開獎日期</label>
-      <input type="text" id="manual-date" placeholder="例：2026/04/14">
-      <label class="field-label">開獎號碼（點擊選擇）</label>
-      <div id="manual-ball-picker"></div>
-      <div id="manual-special-row" style="display:none;">
-        <label class="field-label">特別號</label>
-        <div id="manual-special-picker"></div>
-      </div>
-      <div style="margin-top:4px;font-size:0.8rem;color:var(--muted);" id="manual-selected-display"></div>
-      <button class="btn btn-primary" onclick="saveManual()" style="margin-top:12px;">💾 儲存開獎號碼</button>
-    </div>
+  </div><!-- end scroll-area -->
 
-    <div class="card">
-      <div class="card-title"><span class="icon">💾</span> 資料備份</div>
-      <button class="btn btn-secondary btn-sm" onclick="exportData()" style="margin-right:8px;margin-bottom:8px;width:auto;">📤 匯出 JSON 備份</button>
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-json').click()" style="width:auto;">📥 匯入 JSON 備份</button>
-      <input type="file" id="import-json" accept=".json" style="display:none;" onchange="importData(event)">
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchPage('analysis',this)" id="nav-analysis">
+      <div class="nav-icon">🔮</div>分析
+    </div>
+    <div class="nav-item" onclick="switchPage('history',this)" id="nav-history">
+      <div class="nav-icon">📋</div>紀錄
+    </div>
+    <div class="nav-item" onclick="switchPage('check',this)" id="nav-check">
+      <div class="nav-icon">🎟</div>對獎
+    </div>
+    <div class="nav-item" id="nav-admin" onclick="switchPage('admin',this)" style="display:none;">
+      <div class="nav-icon">🔐</div>後台
     </div>
   </div>
 
-  <!-- Check Tab -->
-  <div class="tab-content" id="tab-check">
-    <div class="card">
-      <div class="card-title"><span class="icon">🎟</span> 對獎</div>
-      <label class="field-label">選擇彩券</label>
-      <select id="check-type" onchange="renderCheckPicker()">
-        <option value="hk">香港六合彩</option>
-        <option value="lotto">大樂透</option>
-        <option value="539">今彩539</option>
-      </select>
-      <label class="field-label">輸入你的號碼（點擊選擇）</label>
-      <div id="check-picker"></div>
-      <div id="check-special-row" style="display:none;">
-        <label class="field-label">特別號</label>
-        <div id="check-special-picker"></div>
-      </div>
-      <div style="margin-top:6px;font-size:0.8rem;color:var(--muted);" id="check-selected-display"></div>
-      <label class="field-label" style="margin-top:12px;">對照期號（留空則對最新一期）</label>
-      <input type="text" id="check-period" placeholder="例：115062">
-      <button class="btn btn-primary" onclick="checkTicket()" style="margin-top:12px;">🎯 開始對獎</button>
-      <div id="check-result"></div>
-    </div>
-  </div>
+</div><!-- end main-app -->
 
-  <div class="disclaimer">⚠️ 本平台所有號碼分析僅供娛樂參考，不保證中獎，請理性購彩</div>
-</div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Firebase SDK -->
+<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, writeBatch }
+  import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -417,8 +515,7 @@
     projectId: "lottery-prediction-208db",
     storageBucket: "lottery-prediction-208db.firebasestorage.app",
     messagingSenderId: "716946092831",
-    appId: "1:716946092831:web:211165b22088a56db0f62a",
-    measurementId: "G-18RXY9VGQQ"
+    appId: "1:716946092831:web:211165b22088a56db0f62a"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -426,299 +523,534 @@
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
-  // Expose to global
-  window._auth = auth;
-  window._db = db;
-  window._provider = provider;
-  window._signInWithPopup = signInWithPopup;
-  window._signOut = signOut;
-  window._onAuthStateChanged = onAuthStateChanged;
-  window._collection = collection;
-  window._doc = doc;
-  window._setDoc = setDoc;
-  window._getDocs = getDocs;
-  window._deleteDoc = deleteDoc;
-  window._query = query;
-  window._orderBy = orderBy;
-  window._writeBatch = writeBatch;
+  window._fb = { auth, db, provider,
+    signInWithPopup, signOut, onAuthStateChanged,
+    collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch
+  };
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('main-app').style.display = 'block';
-      const ua = document.getElementById('user-area');
-      ua.innerHTML = `<img class="user-avatar" src="${user.photoURL}" /><span class="user-name">${user.displayName}</span><button class="btn-logout" onclick="signOutUser()">登出</button>`;
-      await loadAllData();
+      const mainApp = document.getElementById('main-app');
+      mainApp.style.display = 'flex';
+
+      const isAdmin = user.email === 'richking5269@gmail.com';
+      window._isAdmin = isAdmin;
+      window._uid = user.uid;
+
+      const hr = document.getElementById('header-right');
+      hr.innerHTML = `
+        ${isAdmin ? '<span class="admin-badge">管理員</span>' : ''}
+        <img class="user-avatar" src="${user.photoURL}" title="${user.displayName}">
+        <button class="btn-logout" onclick="signOutUser()">登出</button>
+      `;
+
+      if (isAdmin) {
+        document.getElementById('nav-admin').style.display = 'flex';
+      }
+
+      await loadData();
       hideOverlay();
     } else {
       document.getElementById('login-screen').style.display = 'flex';
       document.getElementById('main-app').style.display = 'none';
-      document.getElementById('user-area').innerHTML = `<button class="btn-login" onclick="signIn()">Google 登入</button>`;
       hideOverlay();
     }
   });
 </script>
 
 <script>
-// ============ CONFIG ============
+const ADMIN_EMAIL = 'richking5269@gmail.com';
 const TYPES = {
-  hk:    { name: '六合彩', max: 49, pick: 6, special: true,  specialMax: 49, color: 'ball-red' },
-  lotto: { name: '大樂透', max: 49, pick: 6, special: false, color: 'ball-blue' },
-  '539': { name: '今彩539', max: 39, pick: 5, special: false, color: 'ball-green' }
+  hk:    { name: '香港六合彩', max: 49, pick: 6, special: true,  ballClass: 'ball-hk', spClass: 'ball-hk-sp', pickClass: 'selected-hk' },
+  lotto: { name: '大樂透',    max: 49, pick: 6, special: false, ballClass: 'ball-lotto', pickClass: 'selected-lotto' },
+  '539': { name: '今彩539',   max: 39, pick: 5, special: false, ballClass: 'ball-539', pickClass: 'selected-539' }
 };
+const TYPE_COLORS = { hk: '#e63946', lotto: '#f9c01e', '539': '#ff6b00' };
+const TYPE_BTN = { hk: 'btn-hk', lotto: 'btn-lotto', '539': 'btn-539' };
 
-let DB_DATA = { hk: [], lotto: [], '539': [] };
-let charts = {};
-let manualSelected = { hk: [], lotto: [], '539': [] };
-let manualSpecial = { hk: null };
-let checkSelected = { hk: [], lotto: [], '539': [] };
-let checkSpecial = { hk: null };
+let currentType = 'hk';
+let DB = { hk: [], lotto: [], '539': [] };
+let chartInst = null;
 
-// ============ OVERLAY ============
-function showOverlay(txt) {
-  document.getElementById('overlay-text').textContent = txt || '載入中...';
-  document.getElementById('overlay').classList.remove('hidden');
-}
-function hideOverlay() {
-  document.getElementById('overlay').classList.add('hidden');
-}
+// Selections
+let adminSel = [], adminSpSel = null;
+let checkSel = [], checkSpSel = null;
 
-// ============ AUTH ============
-function signIn() {
-  showOverlay('登入中...');
-  window._signInWithPopup(window._auth, window._provider).catch(e => { hideOverlay(); showToast('登入失敗：' + e.message); });
-}
-function signOutUser() {
-  window._signOut(window._auth);
-}
+// ── OVERLAY ──
+function showOverlay(t) { document.getElementById('overlay-text').textContent = t||'載入中...'; document.getElementById('overlay').classList.remove('hidden'); }
+function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 
-// ============ FIRESTORE ============
-async function loadAllData() {
-  showOverlay('載入資料...');
-  const uid = window._auth.currentUser.uid;
-  for (const type of ['hk', 'lotto', '539']) {
+// ── AUTH ──
+function signIn() { showOverlay('登入中...'); window._fb.signInWithPopup(window._fb.auth, window._fb.provider).catch(e => { hideOverlay(); showToast('登入失敗'); }); }
+function signOutUser() { window._fb.signOut(window._fb.auth); }
+
+// ── LOAD DATA ──
+async function loadData() {
+  showOverlay('載入開獎資料...');
+  const fb = window._fb;
+  for (const type of ['hk','lotto','539']) {
     try {
-      const q = window._query(window._collection(window._db, `users/${uid}/${type}`), window._orderBy('period', 'desc'));
-      const snap = await window._getDocs(q);
-      DB_DATA[type] = snap.docs.map(d => d.data());
-    } catch(e) { DB_DATA[type] = []; }
+      const q = fb.query(fb.collection(fb.db, `lotteryData/${type}/draws`), fb.orderBy('period','desc'));
+      const snap = await fb.getDocs(q);
+      DB[type] = snap.docs.map(d => d.data());
+    } catch(e) { DB[type] = []; }
   }
   renderAll();
-  hideOverlay();
 }
 
-async function saveRecord(type, record) {
-  const uid = window._auth.currentUser.uid;
-  const ref = window._doc(window._db, `users/${uid}/${type}`, record.period);
-  await window._setDoc(ref, record);
-  DB_DATA[type] = DB_DATA[type].filter(r => r.period !== record.period);
-  DB_DATA[type].unshift(record);
-  DB_DATA[type].sort((a, b) => b.period.localeCompare(a.period));
+// ── SWITCH TYPE ──
+function switchType(type, el) {
+  currentType = type;
+  document.querySelectorAll('.type-tab').forEach(t => t.className = 'type-tab');
+  el.classList.add('active-' + type);
+  document.documentElement.style.setProperty('--active', TYPE_COLORS[type]);
   renderAll();
+  // Reset to analysis page
+  switchPage('analysis', document.getElementById('nav-analysis'));
 }
 
-async function deleteRecord(type, period) {
-  const uid = window._auth.currentUser.uid;
-  await window._deleteDoc(window._doc(window._db, `users/${uid}/${type}`, period));
-  DB_DATA[type] = DB_DATA[type].filter(r => r.period !== period);
-  renderAll();
-  showToast('已刪除');
-}
+// ── SWITCH PAGE ──
+function switchPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('scroll-area').scrollTop = 0;
 
-// ============ TABS ============
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    const names = ['hk','lotto','539','import','check'];
-    t.classList.toggle('active', names[i] === name);
-  });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (['hk','lotto','539'].includes(name)) setTimeout(() => renderChart(name), 50);
-  if (name === 'import') renderManualInputs();
+  if (name === 'history') renderHistory();
   if (name === 'check') renderCheckPicker();
+  if (name === 'admin') renderAdminPanel();
+  if (name === 'analysis') setTimeout(() => renderChart(), 50);
 }
 
-// ============ RENDER ALL ============
+// ── RENDER ALL ──
 function renderAll() {
-  ['hk', 'lotto', '539'].forEach(type => {
-    renderHotCold(type);
-    renderHistory(type);
-    generatePred(type);
-  });
-  renderChart('hk');
-  renderManualInputs();
-  renderCheckPicker();
+  const type = currentType;
+  const color = TYPE_COLORS[type];
+
+  // Update dots & buttons color
+  document.querySelectorAll('.title-dot').forEach(d => d.style.background = color);
+
+  // Latest card
+  const latestCard = document.getElementById('latest-card');
+  latestCard.style.background = `linear-gradient(135deg, ${color}22, ${color}11)`;
+  latestCard.style.border = `1px solid ${color}44`;
+  renderLatest();
+  generateAll();
+  renderHotCold();
+  setTimeout(() => renderChart(), 50);
+
+  // Update check & admin buttons
+  const checkBtn = document.getElementById('check-btn');
+  if (checkBtn) { checkBtn.className = `btn ${TYPE_BTN[type]}`; }
+  document.getElementById('check-dot').style.background = color;
 }
 
-// ============ HOT / COLD ============
-function getFrequency(type) {
+// ── LATEST DRAW ──
+function renderLatest() {
+  const type = currentType;
+  const cfg = TYPES[type];
+  const data = DB[type];
+  if (data.length === 0) {
+    document.getElementById('latest-period').textContent = cfg.name;
+    document.getElementById('latest-title').textContent = '尚無開獎資料';
+    document.getElementById('latest-balls').innerHTML = '';
+    return;
+  }
+  const latest = data[0];
+  document.getElementById('latest-period').textContent = `${cfg.name} · 第 ${latest.period} 期 ${latest.date ? '· ' + latest.date : ''}`;
+  document.getElementById('latest-title').textContent = '最新開獎號碼';
+  const ballsEl = document.getElementById('latest-balls');
+  ballsEl.innerHTML = (latest.numbers||[]).map(n => `<div class="ball ${cfg.ballClass}">${n}</div>`).join('');
+  if (latest.special) ballsEl.innerHTML += `<div class="ball ${cfg.spClass}">${latest.special}</div>`;
+}
+
+// ── FREQUENCY ──
+function getFreq(type) {
   const cfg = TYPES[type];
   const freq = {};
   for (let i = 1; i <= cfg.max; i++) freq[i] = 0;
-  DB_DATA[type].forEach(r => {
-    (r.numbers || []).forEach(n => { if (freq[n] !== undefined) freq[n]++; });
-    if (r.special) { if (freq[r.special] !== undefined) freq[r.special]++; }
+  DB[type].forEach(r => {
+    (r.numbers||[]).forEach(n => { if (freq[n]!==undefined) freq[n]++; });
   });
   return freq;
 }
 
-function renderHotCold(type) {
-  const freq = getFrequency(type);
-  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-  const hot = sorted.slice(0, 10);
-  const cold = sorted.slice(-10).reverse();
+// ── HOT / COLD ──
+function renderHotCold() {
+  const type = currentType;
   const cfg = TYPES[type];
-
-  document.getElementById(type + '-hot').innerHTML =
-    hot.map(([n]) => `<div class="ball ${cfg.color}">${n}</div>`).join('');
-  document.getElementById(type + '-cold').innerHTML =
-    cold.map(([n]) => `<div class="ball ball-gray">${n}</div>`).join('');
+  const freq = getFreq(type);
+  const sorted = Object.entries(freq).sort((a,b) => b[1]-a[1]);
+  document.getElementById('hot-balls').innerHTML = sorted.slice(0,10).map(([n]) => `<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('');
+  document.getElementById('cold-balls').innerHTML = sorted.slice(-10).reverse().map(([n]) => `<div class="ball ball-sm ball-gray">${n}</div>`).join('');
 }
 
-// ============ CHART ============
-function updateRange(type, val) {
-  document.getElementById(type + '-range-val').textContent = val;
-  renderChart(type);
-}
-
-function renderChart(type) {
-  const rangeEl = document.getElementById(type + '-range-val');
-  const range = rangeEl ? parseInt(rangeEl.textContent) : 30;
-  const data = DB_DATA[type].slice(0, range).reverse();
-  if (data.length === 0) return;
-
+// ── AI GENERATE ──
+function generateAll() {
+  const type = currentType;
   const cfg = TYPES[type];
-  const freq = {};
-  for (let i = 1; i <= cfg.max; i++) freq[i] = 0;
-  data.forEach(r => (r.numbers || []).forEach(n => { if (freq[n] !== undefined) freq[n]++; }));
+  const freq = getFreq(type);
+  const total = Object.values(freq).reduce((a,b)=>a+b,0) || 1;
+  const weights = Object.entries(freq).map(([n,c]) => ({ n:parseInt(n), w:(c+1)/(total+cfg.max) }));
+  weights.sort((a,b) => b.w-a.w);
 
-  const labels = Object.keys(freq);
-  const values = Object.values(freq);
-  const maxVal = Math.max(...values);
-
-  const colors = values.map(v => {
-    const ratio = v / (maxVal || 1);
-    if (ratio > 0.6) return 'rgba(224,92,92,0.8)';
-    if (ratio < 0.2) return 'rgba(74,143,232,0.8)';
-    return 'rgba(245,197,24,0.6)';
-  });
-
-  const canvasId = type + '-chart';
-  if (charts[type]) { charts[type].destroy(); }
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  charts[type] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderWidth: 0 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#8891a8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        y: { ticks: { color: '#8891a8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
-      }
-    }
-  });
-}
-
-// ============ PREDICTION ============
-function generatePred(type) {
-  const cfg = TYPES[type];
-  const freq = getFrequency(type);
-  const total = Object.values(freq).reduce((a, b) => a + b, 0) || 1;
-  const weights = Object.entries(freq).map(([n, c]) => ({ n: parseInt(n), w: (c + 1) / (total + cfg.max) }));
-  weights.sort((a, b) => b.w - a.w);
-
-  // AI Recommend: weighted random pick
+  // AI Recommend
   const picked = weightedSample(weights, cfg.pick);
-  const ballClass = cfg.color;
+  document.getElementById('ai-recommend').innerHTML = picked.map(n => `<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('');
 
-  // Render AI balls
-  const aiEl = document.getElementById(type + '-ai-balls');
-  if (aiEl) aiEl.innerHTML = picked.map(n => `<div class="ball ${ballClass}">${n}</div>`).join('');
-
-  // Special (HK only)
+  // Special
+  const spRow = document.getElementById('ai-special-row');
   if (type === 'hk') {
+    spRow.style.display = 'block';
     const sp = weightedSample(weights, 1);
-    document.getElementById('hk-ai-special').innerHTML = `<div class="ball ball-gold">${sp[0]}</div>`;
-  }
+    document.getElementById('ai-special').innerHTML = `<div class="ball ball-sm ball-hk-sp">${sp[0]}</div>`;
+  } else { spRow.style.display = 'none'; }
 
-  // 座車: top 2 weighted
-  const zuche = weights.slice(0, 2).map(w => w.n);
-  const zucheEl = document.getElementById(type + '-zuche');
-  if (zucheEl) zucheEl.innerHTML = zuche.map(n => `<div class="ball ball-gold">${n}</div>`).join('');
+  // Zuche
+  const zuche = weights.slice(0,2).map(w=>w.n);
+  document.getElementById('ai-zuche').innerHTML = zuche.map(n => `<div class="ball ball-sm ball-green">${n}</div>`).join('');
 
-  // 五不出 (539 only)
+  // Wubuchu (539 only)
+  const wubuchuRow = document.getElementById('wubuchu-row');
   if (type === '539') {
-    const wbuchu = weights.slice(-5).map(w => w.n);
-    const el = document.getElementById('539-wubuchu');
-    if (el) el.innerHTML = wbuchu.map(n => `<div class="ball ball-gray">${n}</div>`).join('');
-  }
+    wubuchuRow.style.display = 'block';
+    const wubu = weights.slice(-5).map(w=>w.n);
+    document.getElementById('ai-wubuchu').innerHTML = wubu.map(n => `<div class="ball ball-sm ball-gray">${n}</div>`).join('');
+  } else { wubuchuRow.style.display = 'none'; }
 
-  // 尾號 (hk, lotto)
+  // Tail (hk, lotto)
+  const tailRow = document.getElementById('tail-row');
   if (type === 'hk' || type === 'lotto') {
-    renderTailNumbers(type);
-  }
-
-  // Hot / Cold
-  renderHotCold(type);
+    tailRow.style.display = 'block';
+    renderTail(type);
+  } else { tailRow.style.display = 'none'; }
 }
 
 function weightedSample(weights, k) {
   const pool = [...weights];
   const result = [];
   for (let i = 0; i < k && pool.length > 0; i++) {
-    const totalW = pool.reduce((s, w) => s + w.w, 0);
-    let r = Math.random() * totalW;
-    let idx = 0;
-    for (; idx < pool.length - 1; idx++) {
-      r -= pool[idx].w;
-      if (r <= 0) break;
-    }
-    result.push(pool[idx].n);
-    pool.splice(idx, 1);
+    const tw = pool.reduce((s,w)=>s+w.w,0);
+    let r = Math.random()*tw, idx = 0;
+    for (; idx < pool.length-1; idx++) { r -= pool[idx].w; if (r<=0) break; }
+    result.push(pool[idx].n); pool.splice(idx,1);
   }
   return result;
 }
 
-function renderTailNumbers(type) {
+function renderTail(type) {
   const tailFreq = {};
-  for (let i = 0; i <= 9; i++) tailFreq[i] = 0;
-  let totalSpecials = 0;
-
-  DB_DATA[type].forEach(r => {
-    const sp = r.special || (r.numbers && r.numbers[r.numbers.length - 1]);
-    if (sp !== undefined) {
-      tailFreq[sp % 10]++;
-      totalSpecials++;
-    }
+  for (let i=0;i<=9;i++) tailFreq[i]=0;
+  let tot = 0;
+  DB[type].forEach(r => {
+    const sp = r.special || (r.numbers&&r.numbers[r.numbers.length-1]);
+    if (sp!==undefined) { tailFreq[sp%10]++; tot++; }
   });
-
-  const sorted = Object.entries(tailFreq).sort((a, b) => b[1] - a[1]);
-  const el = document.getElementById(type + '-tail');
-  if (!el) return;
-  el.innerHTML = sorted.slice(0, 5).map(([tail, cnt]) => {
-    const pct = totalSpecials > 0 ? Math.round(cnt / totalSpecials * 100) : 0;
-    return `<div class="tail-item"><div class="tail-num">${tail}</div><div class="tail-pct">尾 ${pct}%</div></div>`;
+  const sorted = Object.entries(tailFreq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const color = TYPE_COLORS[type];
+  document.getElementById('ai-tail').innerHTML = sorted.map(([t,c]) => {
+    const pct = tot > 0 ? Math.round(c/tot*100) : 0;
+    return `<div class="tail-item"><div class="tail-num" style="color:${color}">${t}</div><div class="tail-pct">尾 ${pct}%</div></div>`;
   }).join('');
 }
 
-// ============ HISTORY ============
-function renderHistory(type) {
-  const el = document.getElementById(type + '-history');
-  if (!el) return;
+// ── CHART ──
+function onRangeChange(v) {
+  document.getElementById('range-val').textContent = v;
+  renderChart();
+}
+
+function renderChart() {
+  const type = currentType;
+  const range = parseInt(document.getElementById('range-val').textContent);
+  const data = DB[type].slice(0,range).reverse();
+  const freq = {};
   const cfg = TYPES[type];
-  const data = DB_DATA[type].slice(0, 20);
+  for (let i=1;i<=cfg.max;i++) freq[i]=0;
+  data.forEach(r => (r.numbers||[]).forEach(n => { if(freq[n]!==undefined) freq[n]++; }));
+
+  const labels = Object.keys(freq);
+  const values = Object.values(freq);
+  const maxVal = Math.max(...values,1);
+  const color = TYPE_COLORS[type];
+  const colors = values.map(v => {
+    const ratio = v/maxVal;
+    if (ratio>0.6) return color+'cc';
+    if (ratio<0.2) return '#4a8fe888';
+    return color+'66';
+  });
+
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  const ctx = document.getElementById('main-chart').getContext('2d');
+  chartInst = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderRadius:4, borderWidth:0 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ color:'#7b82a8', font:{ size:9 } }, grid:{ color:'rgba(255,255,255,0.04)' } },
+        y:{ ticks:{ color:'#7b82a8', font:{ size:9 } }, grid:{ color:'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const type = currentType;
+  const cfg = TYPES[type];
+  const data = DB[type];
+  const el = document.getElementById('history-list');
   if (data.length === 0) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px;">尚無資料，請先匯入開獎號碼</div>';
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>尚無開獎資料</div>`;
     return;
   }
-  el.innerHTML = data.map(r => `
+  el.innerHTML = data.slice(0,50).map(r => `
     <div class="history-item">
-      <div>
-        <div class="history-period">第 ${r.period} 期 ${r.date ? '· ' + r.date : ''}</div>
-        <div class="balls-row" style="margin-top:4px;">
-          ${(r.numbers || []).map(n => `<div class="ball ${cfg.color} ball-sm">${n}</div>`).join('')}
-          ${r.special ? `<div class="ball ball-gold ball-sm">${r.special}</div>` : ''}
+      <div class="history-left">
+        <div class="history-period">第 ${r.period} 期 ${r.date?'· '+r.date:''}</div>
+        <div class="balls-row">
+          ${(r.numbers||[]).map(n=>`<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('')}
+          ${r.special?`<div class="ball ball-sm ${cfg.spClass}">${r.special}</div>`:''}
+        </div>
+      </div>
+      ${window._isAdmin ? `<button class="btn-del" onclick="deleteRecord('${type}','${r.period}')">🗑</button>` : ''}
+    </div>
+  `).join('');
+}
+
+// ── CHECK TICKET ──
+function renderCheckPicker() {
+  const type = currentType;
+  const cfg = TYPES[type];
+  checkSel = []; checkSpSel = null;
+
+  const picker = document.getElementById('check-picker');
+  picker.innerHTML = '';
+  for (let i=1;i<=cfg.max;i++) {
+    const btn = document.createElement('button');
+    btn.className = 'pick-btn'; btn.textContent = i;
+    btn.onclick = () => toggleCheckBall(i, btn, cfg);
+    picker.appendChild(btn);
+  }
+
+  const spWrap = document.getElementById('check-sp-wrap');
+  if (type === 'hk') {
+    spWrap.style.display = 'block';
+    const spPicker = document.getElementById('check-sp-picker');
+    spPicker.innerHTML = '';
+    for (let i=1;i<=49;i++) {
+      const btn = document.createElement('button');
+      btn.className = 'pick-btn'; btn.textContent = i;
+      btn.onclick = () => toggleCheckSp(i, btn);
+      spPicker.appendChild(btn);
+    }
+  } else { spWrap.style.display = 'none'; }
+  updateCheckDisplay();
+}
+
+function toggleCheckBall(n, btn, cfg) {
+  const idx = checkSel.indexOf(n);
+  if (idx>=0) { checkSel.splice(idx,1); btn.classList.remove(cfg.pickClass); }
+  else if (checkSel.length < cfg.pick) { checkSel.push(n); btn.classList.add(cfg.pickClass); }
+  else { showToast(`最多選 ${cfg.pick} 顆`); return; }
+  updateCheckDisplay();
+}
+
+function toggleCheckSp(n, btn) {
+  document.querySelectorAll('#check-sp-picker .pick-btn').forEach(b=>b.classList.remove('selected-sp'));
+  checkSpSel = checkSpSel===n ? null : n;
+  if (checkSpSel) btn.classList.add('selected-sp');
+  updateCheckDisplay();
+}
+
+function updateCheckDisplay() {
+  const type = currentType;
+  const cfg = TYPES[type];
+  let txt = checkSel.length>0 ? `已選: ${[...checkSel].sort((a,b)=>a-b).join(' ')}` : '尚未選號';
+  if (type==='hk' && checkSpSel) txt += ` | 特別號: ${checkSpSel}`;
+  txt += ` (${checkSel.length}/${cfg.pick})`;
+  document.getElementById('check-display').textContent = txt;
+}
+
+function checkTicket() {
+  const type = currentType;
+  const cfg = TYPES[type];
+  if (checkSel.length !== cfg.pick) { showToast(`請選擇 ${cfg.pick} 顆號碼`); return; }
+
+  const periodInput = document.getElementById('check-period-input').value.trim();
+  let target;
+  if (periodInput) {
+    target = DB[type].find(r => r.period === periodInput);
+    if (!target) { showToast('找不到該期資料'); return; }
+  } else {
+    target = DB[type][0];
+    if (!target) { showToast('尚無開獎資料'); return; }
+  }
+
+  const matched = checkSel.filter(n => (target.numbers||[]).includes(n)).length;
+  const spMatch = type==='hk' && checkSpSel && target.special===checkSpSel;
+  const color = TYPE_COLORS[type];
+
+  let emoji = matched>=cfg.pick ? '🏆' : matched>=4 ? '🎉' : matched>=2 ? '😊' : '😅';
+  let msg = matched>=cfg.pick ? '全中！恭喜！' : `對中 ${matched} 顆`;
+  if (spMatch) msg += ' + 特別號✨';
+
+  document.getElementById('check-result').innerHTML = `
+    <div class="check-result">
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;">對照第 ${target.period} 期 ${target.date||''}</div>
+      <div class="balls-row" style="justify-content:center;margin-bottom:12px;">
+        ${(target.numbers||[]).map(n=>`<div class="ball ball-sm ${checkSel.includes(n)?cfg.ballClass:'ball-gray'}">${n}</div>`).join('')}
+        ${target.special?`<div class="ball ball-sm ${(type==='hk'&&checkSpSel===target.special)?cfg.spClass:'ball-gray'}">${target.special}</div>`:''}
+      </div>
+      <div class="check-big">${emoji}</div>
+      <div class="check-msg" style="color:${color}">${msg}</div>
+      <div class="check-sub">開獎號碼：${(target.numbers||[]).join(' ')}${target.special?' 特別號:'+target.special:''}</div>
+    </div>`;
+}
+
+// ── ADMIN ──
+function updateAdminType() { renderAdminPanel(); }
+
+function renderAdminPanel() {
+  if (!window._isAdmin) return;
+  const type = document.getElementById('admin-type')?.value || 'hk';
+  const cfg = TYPES[type];
+  adminSel = []; adminSpSel = null;
+
+  const picker = document.getElementById('admin-picker');
+  if (!picker) return;
+  picker.innerHTML = '';
+  for (let i=1;i<=cfg.max;i++) {
+    const btn = document.createElement('button');
+    btn.className = 'pick-btn'; btn.textContent = i;
+    btn.onclick = () => toggleAdminBall(i, btn, cfg);
+    picker.appendChild(btn);
+  }
+
+  const spWrap = document.getElementById('admin-sp-wrap');
+  if (type === 'hk') {
+    spWrap.style.display = 'block';
+    const spPicker = document.getElementById('admin-sp-picker');
+    spPicker.innerHTML = '';
+    for (let i=1;i<=49;i++) {
+      const btn = document.createElement('button');
+      btn.className = 'pick-btn'; btn.textContent = i;
+      btn.onclick = () => toggleAdminSp(i, btn);
+      spPicker.appendChild(btn);
+    }
+  } else { spWrap.style.display = 'none'; }
+
+  const saveBtn = document.getElementById('admin-save-btn');
+  if (saveBtn) saveBtn.className = `btn ${TYPE_BTN[type]}`;
+
+  renderAdminHistory(type);
+  updateAdminDisplay();
+}
+
+function toggleAdminBall(n, btn, cfg) {
+  const idx = adminSel.indexOf(n);
+  if (idx>=0) { adminSel.splice(idx,1); btn.classList.remove(cfg.pickClass); }
+  else if (adminSel.length < cfg.pick) { adminSel.push(n); btn.classList.add(cfg.pickClass); }
+  else { showToast(`最多選 ${cfg.pick} 顆`); return; }
+  updateAdminDisplay();
+}
+
+function toggleAdminSp(n, btn) {
+  document.querySelectorAll('#admin-sp-picker .pick-btn').forEach(b=>b.classList.remove('selected-sp'));
+  adminSpSel = adminSpSel===n ? null : n;
+  if (adminSpSel) btn.classList.add('selected-sp');
+  updateAdminDisplay();
+}
+
+function updateAdminDisplay() {
+  const type = document.getElementById('admin-type')?.value || 'hk';
+  const cfg = TYPES[type];
+  let txt = adminSel.length>0 ? `已選: ${[...adminSel].sort((a,b)=>a-b).join(' ')}` : '尚未選號';
+  if (type==='hk' && adminSpSel) txt += ` | 特別號: ${adminSpSel}`;
+  txt += ` (${adminSel.length}/${cfg.pick})`;
+  const el = document.getElementById('admin-display');
+  if (el) el.textContent = txt;
+}
+
+async function saveAdminSingle() {
+  const type = document.getElementById('admin-type').value;
+  const period = document.getElementById('admin-period').value.trim();
+  const date = document.getElementById('admin-date').value.trim();
+  const cfg = TYPES[type];
+
+  if (!period) { showToast('請輸入期號'); return; }
+  if (adminSel.length !== cfg.pick) { showToast(`請選擇 ${cfg.pick} 顆號碼`); return; }
+  if (type==='hk' && !adminSpSel) { showToast('請選擇特別號'); return; }
+
+  const record = { period, date, numbers: [...adminSel].sort((a,b)=>a-b), type };
+  if (type==='hk') record.special = adminSpSel;
+
+  showOverlay('儲存中...');
+  try {
+    await saveRecord(type, record);
+    adminSel = []; adminSpSel = null;
+    document.getElementById('admin-period').value = '';
+    document.getElementById('admin-date').value = '';
+    renderAdminPanel();
+    renderAll();
+    showToast('✅ 已儲存！');
+  } catch(e) { showToast('失敗: ' + e.message); }
+  hideOverlay();
+}
+
+async function saveBulk() {
+  const type = document.getElementById('admin-type').value;
+  const cfg = TYPES[type];
+  const raw = document.getElementById('admin-bulk').value.trim();
+  if (!raw) { showToast('請輸入資料'); return; }
+
+  const lines = raw.split('\n').filter(l=>l.trim());
+  const records = [];
+
+  for (const line of lines) {
+    const parts = line.split(',').map(p=>p.trim());
+    if (parts.length < 2) continue;
+    const period = parts[0];
+    const nums = parts[1].split(/\s+/).map(Number).filter(n=>n>=1&&n<=cfg.max);
+    if (nums.length !== cfg.pick) continue;
+    const record = { period, numbers: nums.sort((a,b)=>a-b), type };
+    if (parts[2] && !isNaN(parseInt(parts[2]))) record.special = parseInt(parts[2]);
+    if (parts[3]) record.date = parts[3];
+    else if (parts[2] && isNaN(parseInt(parts[2]))) record.date = parts[2];
+    records.push(record);
+  }
+
+  if (records.length === 0) { showToast('無法解析資料，請檢查格式'); return; }
+
+  showOverlay(`儲存 ${records.length} 筆...`);
+  let saved = 0;
+  for (const r of records) {
+    try { await saveRecord(type, r); saved++; } catch(e) {}
+  }
+  renderAll();
+  renderAdminHistory(type);
+  document.getElementById('admin-bulk').value = '';
+  hideOverlay();
+  showToast(`✅ 已儲存 ${saved} 筆`);
+}
+
+function renderAdminHistory(type) {
+  const cfg = TYPES[type] || TYPES[currentType];
+  const data = DB[type] || DB[currentType];
+  const el = document.getElementById('admin-history-list');
+  if (!el) return;
+  if (data.length === 0) { el.innerHTML = '<div class="empty-state" style="padding:16px;">尚無資料</div>'; return; }
+  el.innerHTML = data.slice(0,20).map(r=>`
+    <div class="history-item">
+      <div class="history-left">
+        <div class="history-period">第 ${r.period} 期 ${r.date?'· '+r.date:''}</div>
+        <div class="balls-row">
+          ${(r.numbers||[]).map(n=>`<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('')}
+          ${r.special?`<div class="ball ball-sm ${cfg.spClass}">${r.special}</div>`:''}
         </div>
       </div>
       <button class="btn-del" onclick="deleteRecord('${type}','${r.period}')">🗑</button>
@@ -726,350 +1058,34 @@ function renderHistory(type) {
   `).join('');
 }
 
-// ============ MANUAL INPUT ============
-function renderManualInputs() {
-  const type = document.getElementById('manual-type')?.value;
-  if (!type) return;
-  const cfg = TYPES[type];
-  manualSelected[type] = manualSelected[type] || [];
-
-  const picker = document.getElementById('manual-ball-picker');
-  if (!picker) return;
-  picker.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'input-grid';
-  for (let i = 1; i <= cfg.max; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i;
-    btn.className = 'num-input' + (manualSelected[type].includes(i) ? ' selected' : '');
-    btn.onclick = () => toggleManualBall(type, i, btn, cfg.pick);
-    grid.appendChild(btn);
-  }
-  picker.appendChild(grid);
-
-  const spRow = document.getElementById('manual-special-row');
-  spRow.style.display = (type === 'hk') ? 'block' : 'none';
-  if (type === 'hk') {
-    const spPicker = document.getElementById('manual-special-picker');
-    spPicker.innerHTML = '';
-    const spGrid = document.createElement('div');
-    spGrid.className = 'input-grid';
-    for (let i = 1; i <= 49; i++) {
-      const btn = document.createElement('button');
-      btn.textContent = i;
-      btn.className = 'num-input' + (manualSpecial.hk === i ? ' selected' : '');
-      btn.onclick = () => toggleManualSpecial(i, btn, spGrid);
-      spGrid.appendChild(btn);
-    }
-    spPicker.appendChild(spGrid);
-  }
-  updateManualDisplay(type);
+// ── FIRESTORE CRUD ──
+async function saveRecord(type, record) {
+  const fb = window._fb;
+  const ref = fb.doc(fb.db, `lotteryData/${type}/draws`, record.period);
+  await fb.setDoc(ref, record);
+  DB[type] = DB[type].filter(r=>r.period!==record.period);
+  DB[type].unshift(record);
+  DB[type].sort((a,b)=>b.period.localeCompare(a.period));
 }
 
-function toggleManualBall(type, num, btn, maxPick) {
-  const arr = manualSelected[type];
-  const idx = arr.indexOf(num);
-  if (idx >= 0) { arr.splice(idx, 1); btn.classList.remove('selected'); }
-  else if (arr.length < maxPick) { arr.push(num); btn.classList.add('selected'); }
-  else { showToast(`最多選 ${maxPick} 顆`); return; }
-  updateManualDisplay(type);
+async function deleteRecord(type, period) {
+  if (!window._isAdmin) { showToast('無權限'); return; }
+  const fb = window._fb;
+  await fb.deleteDoc(fb.doc(fb.db, `lotteryData/${type}/draws`, period));
+  DB[type] = DB[type].filter(r=>r.period!==period);
+  renderAll();
+  renderAdminHistory(document.getElementById('admin-type')?.value || type);
+  showToast('已刪除');
 }
 
-function toggleManualSpecial(num, btn, grid) {
-  grid.querySelectorAll('.num-input').forEach(b => b.classList.remove('selected'));
-  manualSpecial.hk = (manualSpecial.hk === num) ? null : num;
-  if (manualSpecial.hk) btn.classList.add('selected');
-  updateManualDisplay('hk');
-}
-
-function updateManualDisplay(type) {
-  const el = document.getElementById('manual-selected-display');
-  if (!el) return;
-  const arr = manualSelected[type];
-  const cfg = TYPES[type];
-  let txt = `已選: ${arr.sort((a,b)=>a-b).join(', ')}`;
-  if (type === 'hk' && manualSpecial.hk) txt += ` | 特別號: ${manualSpecial.hk}`;
-  txt += ` (${arr.length}/${cfg.pick})`;
-  el.textContent = txt;
-}
-
-async function saveManual() {
-  const type = document.getElementById('manual-type').value;
-  const period = document.getElementById('manual-period').value.trim();
-  const date = document.getElementById('manual-date').value.trim();
-  const cfg = TYPES[type];
-  const nums = manualSelected[type];
-
-  if (!period) { showToast('請輸入期號'); return; }
-  if (nums.length !== cfg.pick) { showToast(`請選擇 ${cfg.pick} 顆號碼`); return; }
-  if (type === 'hk' && !manualSpecial.hk) { showToast('請選擇特別號'); return; }
-
-  const record = { period, date, numbers: [...nums].sort((a,b)=>a-b), type };
-  if (type === 'hk') record.special = manualSpecial.hk;
-
-  showOverlay('儲存中...');
-  try {
-    await saveRecord(type, record);
-    manualSelected[type] = [];
-    manualSpecial.hk = null;
-    document.getElementById('manual-period').value = '';
-    document.getElementById('manual-date').value = '';
-    renderManualInputs();
-    showToast('✅ 已儲存！');
-  } catch(e) { showToast('儲存失敗: ' + e.message); }
-  hideOverlay();
-}
-
-// ============ OCR ============
-function handleOcrFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const img = document.getElementById('ocr-img');
-  img.src = URL.createObjectURL(file);
-  img.style.display = 'block';
-  document.getElementById('ocr-progress').style.display = 'block';
-  document.getElementById('ocr-result-area').style.display = 'none';
-  document.getElementById('ocr-bar').style.width = '0%';
-  document.getElementById('ocr-status').textContent = '準備辨識...';
-
-  Tesseract.recognize(file, 'chi_tra+eng', {
-    logger: m => {
-      if (m.status === 'recognizing text') {
-        const pct = Math.round(m.progress * 100);
-        document.getElementById('ocr-bar').style.width = pct + '%';
-        document.getElementById('ocr-status').textContent = `辨識中... ${pct}%`;
-      }
-    }
-  }).then(({ data: { text } }) => {
-    document.getElementById('ocr-status').textContent = '辨識完成！請確認資料';
-    parseOcrText(text);
-  }).catch(e => {
-    document.getElementById('ocr-status').textContent = '辨識失敗，請手動輸入';
-    showToast('OCR 失敗，建議使用手動輸入');
-  });
-}
-
-function parseOcrText(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-  const records = [];
-  lines.forEach(line => {
-    const nums = line.match(/\d+/g);
-    if (nums && nums.length >= 5) {
-      // Try to detect period number (usually 6 digits) and draw numbers
-      const largeNums = nums.filter(n => n.length >= 5);
-      const smallNums = nums.filter(n => parseInt(n) <= 49 && parseInt(n) >= 1 && n.length <= 2);
-      if (largeNums.length > 0 && smallNums.length >= 5) {
-        records.push({ period: largeNums[0], numbers: smallNums.slice(0, 6).map(Number), raw: line });
-      }
-    }
-  });
-
-  const wrap = document.getElementById('ocr-table-wrap');
-  if (records.length === 0) {
-    wrap.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">自動辨識未能解析，請使用手動輸入功能，或嘗試清晰度更高的圖片。</div>';
-    document.getElementById('ocr-result-area').style.display = 'block';
-    return;
-  }
-
-  let html = '<table class="ocr-table"><thead><tr><th>期號</th><th>號碼（可修改）</th><th>日期</th></tr></thead><tbody>';
-  records.forEach((r, i) => {
-    const numCells = r.numbers.map((n, j) =>
-      `<input type="number" min="1" max="49" value="${n}" id="ocr-n-${i}-${j}" style="width:38px;">`
-    ).join(' ');
-    html += `<tr>
-      <td><input type="text" value="${r.period}" id="ocr-p-${i}" style="width:72px;"></td>
-      <td>${numCells}</td>
-      <td><input type="text" value="" id="ocr-d-${i}" placeholder="日期" style="width:80px;"></td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  html += `<div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">共辨識 ${records.length} 筆，請仔細核對後儲存</div>`;
-  wrap.innerHTML = html;
-  wrap.dataset.count = records.length;
-  wrap.dataset.pickLen = records[0]?.numbers?.length || 5;
-  document.getElementById('ocr-result-area').style.display = 'block';
-}
-
-async function saveOcrData() {
-  const type = document.getElementById('ocr-type').value;
-  const cfg = TYPES[type];
-  const wrap = document.getElementById('ocr-table-wrap');
-  const count = parseInt(wrap.dataset.count || 0);
-  const pickLen = cfg.pick;
-  if (count === 0) { showToast('沒有資料可儲存'); return; }
-
-  showOverlay('儲存中...');
-  let saved = 0;
-  for (let i = 0; i < count; i++) {
-    const period = document.getElementById(`ocr-p-${i}`)?.value?.trim();
-    const date = document.getElementById(`ocr-d-${i}`)?.value?.trim() || '';
-    const numbers = [];
-    for (let j = 0; j < pickLen; j++) {
-      const v = parseInt(document.getElementById(`ocr-n-${i}-${j}`)?.value);
-      if (v >= 1 && v <= cfg.max) numbers.push(v);
-    }
-    if (!period || numbers.length !== pickLen) continue;
-    try {
-      await saveRecord(type, { period, date, numbers: numbers.sort((a,b)=>a-b), type });
-      saved++;
-    } catch(e) {}
-  }
-  hideOverlay();
-  showToast(`✅ 已儲存 ${saved} 筆`);
-  document.getElementById('ocr-result-area').style.display = 'none';
-  document.getElementById('ocr-img').style.display = 'none';
-}
-
-// ============ CHECK TICKET ============
-function renderCheckPicker() {
-  const type = document.getElementById('check-type')?.value;
-  if (!type) return;
-  const cfg = TYPES[type];
-  checkSelected[type] = checkSelected[type] || [];
-
-  const picker = document.getElementById('check-picker');
-  if (!picker) return;
-  picker.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'input-grid';
-  for (let i = 1; i <= cfg.max; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i;
-    btn.className = 'num-input' + (checkSelected[type].includes(i) ? ' selected' : '');
-    btn.onclick = () => toggleCheckBall(type, i, btn, cfg.pick);
-    grid.appendChild(btn);
-  }
-  picker.appendChild(grid);
-
-  const spRow = document.getElementById('check-special-row');
-  spRow.style.display = (type === 'hk') ? 'block' : 'none';
-  if (type === 'hk') {
-    const spPicker = document.getElementById('check-special-picker');
-    spPicker.innerHTML = '';
-    const spGrid = document.createElement('div');
-    spGrid.className = 'input-grid';
-    for (let i = 1; i <= 49; i++) {
-      const btn = document.createElement('button');
-      btn.textContent = i;
-      btn.className = 'num-input' + (checkSpecial.hk === i ? ' selected' : '');
-      btn.onclick = () => toggleCheckSpecial(i, btn, spGrid);
-      spGrid.appendChild(btn);
-    }
-    spPicker.appendChild(spGrid);
-  }
-  updateCheckDisplay(type);
-}
-
-function toggleCheckBall(type, num, btn, maxPick) {
-  const arr = checkSelected[type];
-  const idx = arr.indexOf(num);
-  if (idx >= 0) { arr.splice(idx, 1); btn.classList.remove('selected'); }
-  else if (arr.length < maxPick) { arr.push(num); btn.classList.add('selected'); }
-  else { showToast(`最多選 ${maxPick} 顆`); return; }
-  updateCheckDisplay(type);
-}
-
-function toggleCheckSpecial(num, btn, grid) {
-  grid.querySelectorAll('.num-input').forEach(b => b.classList.remove('selected'));
-  checkSpecial.hk = (checkSpecial.hk === num) ? null : num;
-  if (checkSpecial.hk) btn.classList.add('selected');
-  updateCheckDisplay('hk');
-}
-
-function updateCheckDisplay(type) {
-  const el = document.getElementById('check-selected-display');
-  if (!el) return;
-  const arr = checkSelected[type];
-  const cfg = TYPES[type];
-  let txt = `已選: ${arr.sort((a,b)=>a-b).join(', ')}`;
-  if (type === 'hk' && checkSpecial.hk) txt += ` | 特別號: ${checkSpecial.hk}`;
-  txt += ` (${arr.length}/${cfg.pick})`;
-  el.textContent = txt;
-}
-
-function checkTicket() {
-  const type = document.getElementById('check-type').value;
-  const periodInput = document.getElementById('check-period').value.trim();
-  const cfg = TYPES[type];
-  const myNums = checkSelected[type];
-
-  if (myNums.length !== cfg.pick) { showToast(`請選擇 ${cfg.pick} 顆號碼`); return; }
-
-  let target;
-  if (periodInput) {
-    target = DB_DATA[type].find(r => r.period === periodInput);
-    if (!target) { showToast('找不到該期資料'); return; }
-  } else {
-    target = DB_DATA[type][0];
-    if (!target) { showToast('尚無開獎資料'); return; }
-  }
-
-  const matched = myNums.filter(n => (target.numbers || []).includes(n)).length;
-  const spMatch = (type === 'hk' && checkSpecial.hk && target.special === checkSpecial.hk);
-  const cfg2 = TYPES[type];
-
-  let emoji = matched >= 4 ? '🎉' : matched >= 2 ? '😊' : '😅';
-  let msg = matched >= cfg2.pick ? '全對！🏆' : `對中 ${matched} 顆`;
-  if (spMatch) msg += ' + 特別號';
-
-  document.getElementById('check-result').innerHTML = `
-    <div class="check-result">
-      <div style="font-size:0.8rem;color:var(--muted);">對照第 ${target.period} 期 · ${target.date || ''}</div>
-      <div class="balls-row" style="justify-content:center;margin:10px 0;">
-        ${(target.numbers || []).map(n => `<div class="ball ${cfg2.color} ${myNums.includes(n) ? '' : 'ball-gray'}">${n}</div>`).join('')}
-        ${target.special ? `<div class="ball ${myNums.includes(target.special) || checkSpecial.hk === target.special ? 'ball-gold' : 'ball-gray'}">${target.special}</div>` : ''}
-      </div>
-      <div class="check-count">${emoji}</div>
-      <div class="check-label" style="font-size:1rem;margin-top:4px;font-weight:700;">${msg}</div>
-    </div>`;
-}
-
-// ============ EXPORT / IMPORT ============
-function exportData() {
-  const json = JSON.stringify(DB_DATA, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'skvip_backup.json'; a.click();
-  showToast('✅ 已匯出備份');
-}
-
-async function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const text = await file.text();
-  try {
-    const parsed = JSON.parse(text);
-    showOverlay('匯入中...');
-    for (const type of ['hk', 'lotto', '539']) {
-      if (Array.isArray(parsed[type])) {
-        for (const record of parsed[type]) {
-          if (record.period && record.numbers) {
-            await saveRecord(type, { ...record, type });
-          }
-        }
-      }
-    }
-    hideOverlay();
-    showToast('✅ 匯入完成');
-  } catch(e) {
-    hideOverlay();
-    showToast('匯入失敗：格式有誤');
-  }
-}
-
-// ============ TOAST ============
+// ── TOAST ──
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
 }
 
-// Init overlay
-document.addEventListener('DOMContentLoaded', () => {
-  showOverlay('初始化...');
-});
+document.addEventListener('DOMContentLoaded', () => showOverlay('初始化...'));
 </script>
 </body>
 </html>
