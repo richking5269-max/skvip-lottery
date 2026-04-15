@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>SKVIP 彩球預測</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
   <style>
     :root {
       --bg: #0d0f1a;
@@ -151,6 +152,28 @@
     .tag-ai { background: rgba(130,80,255,0.15); color: #a680ff; border: 1px solid #a680ff; }
     .tag-hot { background: rgba(230,57,70,0.15); color: var(--hk-main); border: 1px solid var(--hk-main); }
     .tag-cold { background: rgba(21,101,192,0.15); color: #64b5f6; border: 1px solid #64b5f6; }
+    .tag-tfai { background: rgba(0,230,118,0.15); color: #00e676; border: 1px solid #00e676; }
+
+    /* AI Brain Status Bar */
+    .ai-status-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(0,230,118,0.07); border: 1px solid rgba(0,230,118,0.2);
+      margin-bottom: 12px; font-size: 0.75rem;
+    }
+    .ai-status-bar.training { background: rgba(255,167,38,0.07); border-color: rgba(255,167,38,0.3); }
+    .ai-status-bar.idle { background: rgba(123,130,168,0.07); border-color: var(--border); }
+    .ai-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .ai-status-dot.ready { background: #00e676; box-shadow: 0 0 6px #00e676; }
+    .ai-status-dot.training { background: #ffa726; animation: pulse 1s infinite; }
+    .ai-status-dot.idle { background: var(--muted); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .ai-status-text { color: var(--text); flex: 1; }
+    .ai-epoch-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+    .ai-epoch-fill { height: 100%; background: #ffa726; border-radius: 2px; transition: width 0.3s; }
+    .btn-retrain { background: none; border: 1px solid rgba(0,230,118,0.4); color: #00e676;
+      font-size: 0.68rem; padding: 3px 10px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+    .btn-retrain:hover { background: rgba(0,230,118,0.1); }
 
     /* ── CHART ── */
     .chart-wrap { height: 200px; position: relative; margin-top: 8px; }
@@ -279,6 +302,64 @@
     @media (min-width: 600px) {
       .scroll-area { max-width: 600px; margin: 0 auto; }
     }
+
+    /* ── PREDICT BUTTON ── */
+    .predict-btn-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 0 10px; gap: 10px; }
+    .btn-predict {
+      background: linear-gradient(135deg, #a680ff, #6c3ff5);
+      color: #fff; border: none; border-radius: 50px;
+      padding: 16px 48px; font-size: 1rem; font-weight: 800;
+      cursor: pointer; letter-spacing: 2px;
+      box-shadow: 0 4px 20px rgba(108,63,245,0.5);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-predict:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(108,63,245,0.4); }
+    .predict-hint { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── PREDICTION LOADING (inside card) ── */
+    .pred-loading {
+      display: none; flex-direction: column; gap: 14px;
+      padding: 20px 4px;
+    }
+    .pred-loading.active { display: flex; }
+    .pred-stage-label { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+    .pred-stage-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .pred-progress-track {
+      height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .pred-progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #6c3ff5, #a680ff);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .pred-stage-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .pred-stage-item { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: var(--muted); }
+    .pred-stage-item.done { color: #00e676; }
+    .pred-stage-item.active { color: var(--text); font-weight: 700; }
+    .pred-stage-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── PREDICTION RESULTS ── */
+    .pred-results { display: none; }
+    .pred-results.active { display: block; animation: fadeInUp 0.5s ease; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ball-reveal { animation: ballPop 0.35s ease both; }
+    @keyframes ballPop {
+      from { opacity: 0; transform: scale(0.5); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── HEADER ADMIN GEAR ── */
+    .btn-admin-gear {
+      background: none; border: 1px solid var(--border);
+      color: var(--muted); padding: 5px 8px; border-radius: 10px;
+      font-size: 1rem; cursor: pointer; line-height: 1;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-admin-gear:hover { border-color: var(--active); color: var(--text); }
   </style>
 </head>
 <body>
@@ -324,13 +405,13 @@
 
   <!-- Lottery Type Tabs -->
   <div class="type-tabs" id="type-tabs">
-    <div class="type-tab active-hk" onclick="switchType('hk',this)">
+    <div class="type-tab" id="tab-hk" onclick="switchType('hk',this)">
       <span class="lottery-icon">🎱</span>六合彩
     </div>
-    <div class="type-tab" onclick="switchType('lotto',this)">
+    <div class="type-tab" id="tab-lotto" onclick="switchType('lotto',this)">
       <span class="lottery-icon">🎯</span>大樂透
     </div>
-    <div class="type-tab" onclick="switchType('539',this)">
+    <div class="type-tab active-539" id="tab-539" onclick="switchType('539',this)">
       <span class="lottery-icon">🍊</span>今彩539
     </div>
   </div>
@@ -352,29 +433,59 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <div class="title-dot" id="ai-dot" style="background:var(--hk-main)"></div>
-            🤖 AI 智慧推薦
+            <div class="title-dot" id="ai-dot"></div>
+            🤖 AI 智慧預測
           </div>
-          <button class="btn btn-sm btn-outline" onclick="generateAll()" style="font-size:0.75rem;padding:6px 12px;border-radius:14px;">重新分析</button>
-        </div>
-        <div class="pred-label"><span class="pred-tag tag-ai">AI推薦</span> 加權機率號碼</div>
-        <div class="balls-row" id="ai-recommend"></div>
-        <div id="ai-special-row" style="display:none;">
-          <div class="pred-label" style="margin-top:10px;"><span class="pred-tag tag-tail">特別號</span></div>
-          <div class="balls-row" id="ai-special"></div>
         </div>
 
-        <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-zuche">🚗 座車</span> 最可能出現的 2 顆</div>
-        <div class="balls-row" id="ai-zuche"></div>
-
-        <div id="wubuchu-row" style="display:none;">
-          <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-wubu">❌ 五不出</span> 最不可能的 5 顆</div>
-          <div class="balls-row" id="ai-wubuchu"></div>
+        <!-- 預測按鈕 (預設顯示) -->
+        <div class="predict-btn-wrap" id="predict-btn-wrap">
+          <button class="btn-predict" onclick="startPrediction()">🔮 開始預測</button>
+          <div class="predict-hint">AI 神經網路分析歷史資料</div>
         </div>
 
-        <div id="tail-row" style="display:none;">
-          <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-tail">🔢 尾號推薦</span> 特別號尾數分析</div>
-          <div class="tail-grid" id="ai-tail"></div>
+        <!-- 載入動畫 (點擊後顯示) -->
+        <div class="pred-loading" id="pred-loading">
+          <div>
+            <div class="pred-stage-label" id="pred-stage-label">準備中...</div>
+            <div class="pred-stage-sub" id="pred-stage-sub"></div>
+          </div>
+          <div class="pred-progress-track">
+            <div class="pred-progress-fill" id="pred-progress-fill"></div>
+          </div>
+          <div class="pred-stage-list">
+            <div class="pred-stage-item" id="stage-item-0"><span class="pred-stage-icon">📂</span> 載入歷史開獎資料</div>
+            <div class="pred-stage-item" id="stage-item-1"><span class="pred-stage-icon">🧠</span> 訓練 AI 神經網路</div>
+            <div class="pred-stage-item" id="stage-item-2"><span class="pred-stage-icon">✨</span> 運算最佳預測號碼</div>
+          </div>
+        </div>
+
+        <!-- 預測結果 (完成後顯示) -->
+        <div class="pred-results" id="pred-results">
+          <div class="pred-label"><span class="pred-tag tag-tfai">🧠 AI推薦</span> 神經網路預測</div>
+          <div class="balls-row" id="ai-recommend"></div>
+
+          <div id="ai-special-row" style="display:none;">
+            <div class="pred-label" style="margin-top:10px;"><span class="pred-tag tag-tail">特別號</span></div>
+            <div class="balls-row" id="ai-special"></div>
+          </div>
+
+          <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-zuche">🚗 座車</span> 跟車號分析</div>
+          <div class="balls-row" id="ai-zuche"></div>
+
+          <div id="wubuchu-row" style="display:none;">
+            <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-wubu">❌ 五不出</span> 最不可能的 5 顆</div>
+            <div class="balls-row" id="ai-wubuchu"></div>
+          </div>
+
+          <div id="tail-row" style="display:none;">
+            <div class="pred-label" style="margin-top:12px;"><span class="pred-tag tag-tail">🔢 尾號推薦</span> 特別號尾數分析</div>
+            <div class="tail-grid" id="ai-tail"></div>
+          </div>
+
+          <div style="text-align:center; margin-top:16px;">
+            <button class="btn-predict" style="padding:10px 30px;font-size:0.82rem;" onclick="resetPrediction()">🔄 重新預測</button>
+          </div>
         </div>
       </div>
 
@@ -492,9 +603,6 @@
     <div class="nav-item" onclick="switchPage('check',this)" id="nav-check">
       <div class="nav-icon">🎟</div>對獎
     </div>
-    <div class="nav-item" id="nav-admin" onclick="switchPage('admin',this)" style="display:none;">
-      <div class="nav-icon">🔐</div>後台
-    </div>
   </div>
 
 </div><!-- end main-app -->
@@ -540,14 +648,10 @@
 
       const hr = document.getElementById('header-right');
       hr.innerHTML = `
-        ${isAdmin ? '<span class="admin-badge">管理員</span>' : ''}
+        ${isAdmin ? `<button class="btn-admin-gear" onclick="switchPage('admin', document.getElementById('nav-analysis'))" title="管理後台">⚙️</button>` : ''}
         <img class="user-avatar" src="${user.photoURL}" title="${user.displayName}">
         <button class="btn-logout" onclick="signOutUser()">登出</button>
       `;
-
-      if (isAdmin) {
-        document.getElementById('nav-admin').style.display = 'flex';
-      }
 
       await loadData();
       hideOverlay();
@@ -569,9 +673,14 @@ const TYPES = {
 const TYPE_COLORS = { hk: '#e63946', lotto: '#f9c01e', '539': '#ff6b00' };
 const TYPE_BTN = { hk: 'btn-hk', lotto: 'btn-lotto', '539': 'btn-539' };
 
-let currentType = 'hk';
+let currentType = '539';
 let DB = { hk: [], lotto: [], '539': [] };
 let chartInst = null;
+
+// AI Brain state
+const aiModels  = { hk: null, lotto: null, '539': null };
+const AI_LOOKBACK = 10;
+const AI_EPOCHS   = 50;
 
 // Selections
 let adminSel = [], adminSpSel = null;
@@ -637,7 +746,7 @@ function renderAll() {
   latestCard.style.background = `linear-gradient(135deg, ${color}22, ${color}11)`;
   latestCard.style.border = `1px solid ${color}44`;
   renderLatest();
-  generateAll();
+  resetPrediction();   // 切換彩種時重置預測區，等待用戶按按鈕
   renderHotCold();
   setTimeout(() => renderChart(), 50);
 
@@ -687,405 +796,240 @@ function renderHotCold() {
   document.getElementById('cold-balls').innerHTML = sorted.slice(-10).reverse().map(([n]) => `<div class="ball ball-sm ball-gray">${n}</div>`).join('');
 }
 
-// ── AI GENERATE ──
-function generateAll() {
-  const type = currentType;
+// ── RESET PREDICTION UI ──
+function resetPrediction() {
+  document.getElementById('predict-btn-wrap').style.display = 'flex';
+  document.getElementById('pred-loading').classList.remove('active');
+  document.getElementById('pred-results').classList.remove('active');
+  // 同步 AI dot 顏色
+  const color = TYPE_COLORS[currentType];
+  const dot = document.getElementById('ai-dot');
+  if (dot) dot.style.background = color;
+}
+
+// ── STAGE ANIMATION HELPERS ──
+function setStage(stageIdx, pct, labelText, subText) {
+  document.getElementById('pred-progress-fill').style.width = pct + '%';
+  document.getElementById('pred-stage-label').textContent = labelText;
+  document.getElementById('pred-stage-sub').textContent = subText || '';
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById('stage-item-' + i);
+    el.classList.remove('done','active');
+    if (i < stageIdx)  el.classList.add('done');
+    if (i === stageIdx) el.classList.add('active');
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── TF.js TRAIN ──
+async function trainAIModel(type, onEpoch) {
   const cfg = TYPES[type];
-  const freq = getFreq(type);
-  const total = Object.values(freq).reduce((a,b)=>a+b,0) || 1;
-  const weights = Object.entries(freq).map(([n,c]) => ({ n:parseInt(n), w:(c+1)/(total+cfg.max) }));
-  weights.sort((a,b) => b.w-a.w);
+  const maxNum = cfg.max;
+  const draws = DB[type].slice().reverse(); // oldest first
+  if (draws.length < AI_LOOKBACK + 5) return null;
 
-  // AI Recommend
-  const picked = weightedSample(weights, cfg.pick);
-  document.getElementById('ai-recommend').innerHTML = picked.map(n => `<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('');
+  const toVec = nums => {
+    const v = new Float32Array(maxNum);
+    (nums||[]).forEach(n => { if (n>=1 && n<=maxNum) v[n-1]=1; });
+    return v;
+  };
 
-  // Special
+  const X = [], Y = [];
+  for (let i = AI_LOOKBACK; i < draws.length; i++) {
+    const input = [];
+    for (let j = i - AI_LOOKBACK; j < i; j++) input.push(...toVec(draws[j].numbers));
+    X.push(input);
+    Y.push(Array.from(toVec(draws[i].numbers)));
+  }
+
+  const xT = tf.tensor2d(X, [X.length, AI_LOOKBACK * maxNum]);
+  const yT = tf.tensor2d(Y, [Y.length, maxNum]);
+
+  const model = tf.sequential();
+  model.add(tf.layers.dense({ inputShape:[AI_LOOKBACK*maxNum], units:128, activation:'relu' }));
+  model.add(tf.layers.dropout({ rate:0.3 }));
+  model.add(tf.layers.dense({ units:64, activation:'relu' }));
+  model.add(tf.layers.dropout({ rate:0.2 }));
+  model.add(tf.layers.dense({ units:maxNum, activation:'sigmoid' }));
+  model.compile({ optimizer: tf.train.adam(0.001), loss:'binaryCrossentropy' });
+
+  await model.fit(xT, yT, {
+    epochs: AI_EPOCHS, batchSize: 32, shuffle: true,
+    callbacks: { onEpochEnd: async (epoch) => { if (onEpoch) onEpoch(epoch); await tf.nextFrame(); } }
+  });
+
+  xT.dispose(); yT.dispose();
+  aiModels[type] = model;
+  return model;
+}
+
+// ── TF.js PREDICT ──
+async function predictWithAI(type) {
+  const model = aiModels[type];
+  const cfg = TYPES[type];
+  const maxNum = cfg.max;
+  if (!model) return null;
+
+  const draws = DB[type].slice(0, AI_LOOKBACK).reverse();
+  const toVec = nums => {
+    const v = new Float32Array(maxNum);
+    (nums||[]).forEach(n => { if (n>=1 && n<=maxNum) v[n-1]=1; });
+    return v;
+  };
+
+  const input = [];
+  for (const d of draws) input.push(...toVec(d.numbers));
+  // Pad if not enough draws
+  while (input.length < AI_LOOKBACK * maxNum) input.push(0);
+
+  const xT = tf.tensor2d([input], [1, AI_LOOKBACK * maxNum]);
+  const pred = model.predict(xT);
+  const probs = await pred.data();
+  xT.dispose(); pred.dispose();
+
+  // Return [{n, p}] sorted by probability desc
+  return Array.from(probs)
+    .map((p, i) => ({ n: i+1, p }))
+    .sort((a, b) => b.p - a.p);
+}
+
+// ── ZUCHE: 跟車號分析 ──
+function calcZuche(type, topN=2) {
+  const draws = DB[type].slice().reverse(); // oldest first
+  if (draws.length < 2) return [];
+  const lastNums = DB[type][0]?.numbers || [];
+  const followCount = {};
+  for (let i = 0; i < draws.length - 1; i++) {
+    const cur  = draws[i].numbers   || [];
+    const next = draws[i+1].numbers || [];
+    for (const trigger of lastNums) {
+      if (cur.includes(trigger)) {
+        next.forEach(n => { if (!lastNums.includes(n)) followCount[n] = (followCount[n]||0) + 1; });
+      }
+    }
+  }
+  return Object.entries(followCount).sort((a,b)=>b[1]-a[1]).slice(0,topN).map(([n])=>parseInt(n));
+}
+
+// ── MAIN: 開始預測 ──
+async function startPrediction() {
+  const type = currentType;
+  const cfg  = TYPES[type];
+  const data = DB[type];
+
+  if (data.length < AI_LOOKBACK + 5) {
+    showToast('資料不足，無法進行 AI 預測');
+    return;
+  }
+
+  // 切換到 loading 畫面
+  document.getElementById('predict-btn-wrap').style.display = 'none';
+  document.getElementById('pred-loading').classList.add('active');
+  document.getElementById('pred-results').classList.remove('active');
+
+  // ── Stage 0: 載入歷史資料 ──
+  setStage(0, 5, '📂 載入歷史開獎資料...', `共 ${data.length} 期`);
+  await sleep(600);
+  setStage(0, 28, '📂 載入歷史開獎資料...', '資料整理完成 ✓');
+  await sleep(400);
+
+  // ── Stage 1: 訓練神經網路 ──
+  setStage(1, 30, '🧠 訓練 AI 神經網路...', '初始化模型');
+  await sleep(300);
+
+  // 如果已有模型就跳過訓練
+  if (aiModels[type]) {
+    for (let e = 0; e <= AI_EPOCHS; e += 10) {
+      const pct = 30 + Math.round((e / AI_EPOCHS) * 55);
+      setStage(1, pct, '🧠 訓練 AI 神經網路...', `第 ${e}/${AI_EPOCHS} 輪`);
+      await sleep(80);
+    }
+  } else {
+    await trainAIModel(type, (epoch) => {
+      const pct = 30 + Math.round(((epoch+1) / AI_EPOCHS) * 55);
+      setStage(1, pct, '🧠 訓練 AI 神經網路...', `第 ${epoch+1}/${AI_EPOCHS} 輪`);
+    });
+  }
+  setStage(1, 86, '🧠 訓練 AI 神經網路...', '模型訓練完成 ✓');
+  await sleep(400);
+
+  // ── Stage 2: 運算預測 ──
+  setStage(2, 90, '✨ 運算最佳預測號碼...', '分析中');
+  await sleep(500);
+
+  const ranked = await predictWithAI(type);
+  if (!ranked) { showToast('預測失敗，請重試'); resetPrediction(); return; }
+
+  setStage(2, 100, '✨ 完成！', '預測號碼已就緒');
+  await sleep(600);
+
+  // ── 顯示結果 ──
+  renderPredResults(type, cfg, ranked);
+  document.getElementById('pred-loading').classList.remove('active');
+  document.getElementById('pred-results').classList.add('active');
+}
+
+// ── 渲染預測結果 ──
+function renderPredResults(type, cfg, ranked) {
+  const ballDelay = (i) => `animation-delay:${i*80}ms`;
+
+  // AI推薦: 加權抽樣前段機率
+  const topPool = ranked.slice(0, Math.min(20, ranked.length));
+  const totalW = topPool.reduce((s,x)=>s+x.p,0)||1;
+  const pickSet = new Set();
+  const pool = [...topPool];
+  while (pickSet.size < cfg.pick && pool.length > 0) {
+    let r = Math.random() * pool.reduce((s,x)=>s+x.p,0);
+    for (let i=0;i<pool.length;i++) { r-=pool[i].p; if(r<=0||i===pool.length-1){pickSet.add(pool[i].n);pool.splice(i,1);break;} }
+  }
+  const picked = Array.from(pickSet).sort((a,b)=>a-b);
+  document.getElementById('ai-recommend').innerHTML =
+    picked.map((n,i) => `<div class="ball ball-sm ${cfg.ballClass} ball-reveal" style="${ballDelay(i)}">${n}</div>`).join('');
+
+  // 特別號 (六合彩)
   const spRow = document.getElementById('ai-special-row');
   if (type === 'hk') {
     spRow.style.display = 'block';
-    const sp = weightedSample(weights, 1);
-    document.getElementById('ai-special').innerHTML = `<div class="ball ball-sm ball-hk-sp">${sp[0]}</div>`;
+    const spNum = ranked.filter(x=>!pickSet.has(x.n))[0]?.n || ranked[0].n;
+    document.getElementById('ai-special').innerHTML = `<div class="ball ball-sm ball-hk-sp ball-reveal">${spNum}</div>`;
   } else { spRow.style.display = 'none'; }
 
-  // Zuche
-  const zuche = weights.slice(0,2).map(w=>w.n);
-  document.getElementById('ai-zuche').innerHTML = zuche.map(n => `<div class="ball ball-sm ball-green">${n}</div>`).join('');
+  // 座車: 跟車號分析
+  const zuche = calcZuche(type, 2);
+  const zucheDisplay = zuche.length > 0 ? zuche : ranked.slice(0,2).map(x=>x.n);
+  document.getElementById('ai-zuche').innerHTML =
+    zucheDisplay.map((n,i) => `<div class="ball ball-sm ball-green ball-reveal" style="${ballDelay(i)}">${n}</div>`).join('');
 
-  // Wubuchu (539 only)
+  // 五不出 (539)
   const wubuchuRow = document.getElementById('wubuchu-row');
   if (type === '539') {
     wubuchuRow.style.display = 'block';
-    const wubu = weights.slice(-5).map(w=>w.n);
-    document.getElementById('ai-wubuchu').innerHTML = wubu.map(n => `<div class="ball ball-sm ball-gray">${n}</div>`).join('');
+    const wubu = ranked.slice(-5).map(x=>x.n).sort((a,b)=>a-b);
+    document.getElementById('ai-wubuchu').innerHTML =
+      wubu.map((n,i) => `<div class="ball ball-sm ball-gray ball-reveal" style="${ballDelay(i)}">${n}</div>`).join('');
   } else { wubuchuRow.style.display = 'none'; }
 
-  // Tail (hk, lotto)
+  // 尾號推薦 (六合彩 / 大樂透)
   const tailRow = document.getElementById('tail-row');
   if (type === 'hk' || type === 'lotto') {
     tailRow.style.display = 'block';
-    renderTail(type);
+    const tailScore = {};
+    for (let t=0;t<=9;t++) tailScore[t]=0;
+    ranked.forEach(({n,p}) => { tailScore[n%10] += p; });
+    const color = TYPE_COLORS[type];
+    const sorted = Object.entries(tailScore).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const total = sorted.reduce((s,[,v])=>s+v,0)||1;
+    document.getElementById('ai-tail').innerHTML = sorted.map(([t,v]) => {
+      const pct = Math.round(v/total*100);
+      return `<div class="tail-item"><div class="tail-num" style="color:${color}">${t}</div><div class="tail-pct">尾 ${pct}%</div></div>`;
+    }).join('');
   } else { tailRow.style.display = 'none'; }
 }
 
-function weightedSample(weights, k) {
-  const pool = [...weights];
-  const result = [];
-  for (let i = 0; i < k && pool.length > 0; i++) {
-    const tw = pool.reduce((s,w)=>s+w.w,0);
-    let r = Math.random()*tw, idx = 0;
-    for (; idx < pool.length-1; idx++) { r -= pool[idx].w; if (r<=0) break; }
-    result.push(pool[idx].n); pool.splice(idx,1);
-  }
-  return result;
-}
-
-function renderTail(type) {
-  const tailFreq = {};
-  for (let i=0;i<=9;i++) tailFreq[i]=0;
-  let tot = 0;
-  DB[type].forEach(r => {
-    const sp = r.special || (r.numbers&&r.numbers[r.numbers.length-1]);
-    if (sp!==undefined) { tailFreq[sp%10]++; tot++; }
-  });
-  const sorted = Object.entries(tailFreq).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const color = TYPE_COLORS[type];
-  document.getElementById('ai-tail').innerHTML = sorted.map(([t,c]) => {
-    const pct = tot > 0 ? Math.round(c/tot*100) : 0;
-    return `<div class="tail-item"><div class="tail-num" style="color:${color}">${t}</div><div class="tail-pct">尾 ${pct}%</div></div>`;
-  }).join('');
-}
 
 // ── CHART ──
 function onRangeChange(v) {
   document.getElementById('range-val').textContent = v;
   renderChart();
 }
-
-function renderChart() {
-  const type = currentType;
-  const range = parseInt(document.getElementById('range-val').textContent);
-  const data = DB[type].slice(0,range).reverse();
-  const freq = {};
-  const cfg = TYPES[type];
-  for (let i=1;i<=cfg.max;i++) freq[i]=0;
-  data.forEach(r => (r.numbers||[]).forEach(n => { if(freq[n]!==undefined) freq[n]++; }));
-
-  const labels = Object.keys(freq);
-  const values = Object.values(freq);
-  const maxVal = Math.max(...values,1);
-  const color = TYPE_COLORS[type];
-  const colors = values.map(v => {
-    const ratio = v/maxVal;
-    if (ratio>0.6) return color+'cc';
-    if (ratio<0.2) return '#4a8fe888';
-    return color+'66';
-  });
-
-  if (chartInst) { chartInst.destroy(); chartInst = null; }
-  const ctx = document.getElementById('main-chart').getContext('2d');
-  chartInst = new Chart(ctx, {
-    type:'bar',
-    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderRadius:4, borderWidth:0 }] },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false } },
-      scales:{
-        x:{ ticks:{ color:'#7b82a8', font:{ size:9 } }, grid:{ color:'rgba(255,255,255,0.04)' } },
-        y:{ ticks:{ color:'#7b82a8', font:{ size:9 } }, grid:{ color:'rgba(255,255,255,0.04)' } }
-      }
-    }
-  });
-}
-
-// ── HISTORY ──
-function renderHistory() {
-  const type = currentType;
-  const cfg = TYPES[type];
-  const data = DB[type];
-  const el = document.getElementById('history-list');
-  if (data.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>尚無開獎資料</div>`;
-    return;
-  }
-  el.innerHTML = data.slice(0,50).map(r => `
-    <div class="history-item">
-      <div class="history-left">
-        <div class="history-period">第 ${r.period} 期 ${r.date?'· '+r.date:''}</div>
-        <div class="balls-row">
-          ${(r.numbers||[]).map(n=>`<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('')}
-          ${r.special?`<div class="ball ball-sm ${cfg.spClass}">${r.special}</div>`:''}
-        </div>
-      </div>
-      ${window._isAdmin ? `<button class="btn-del" onclick="deleteRecord('${type}','${r.period}')">🗑</button>` : ''}
-    </div>
-  `).join('');
-}
-
-// ── CHECK TICKET ──
-function renderCheckPicker() {
-  const type = currentType;
-  const cfg = TYPES[type];
-  checkSel = []; checkSpSel = null;
-
-  const picker = document.getElementById('check-picker');
-  picker.innerHTML = '';
-  for (let i=1;i<=cfg.max;i++) {
-    const btn = document.createElement('button');
-    btn.className = 'pick-btn'; btn.textContent = i;
-    btn.onclick = () => toggleCheckBall(i, btn, cfg);
-    picker.appendChild(btn);
-  }
-
-  const spWrap = document.getElementById('check-sp-wrap');
-  if (type === 'hk') {
-    spWrap.style.display = 'block';
-    const spPicker = document.getElementById('check-sp-picker');
-    spPicker.innerHTML = '';
-    for (let i=1;i<=49;i++) {
-      const btn = document.createElement('button');
-      btn.className = 'pick-btn'; btn.textContent = i;
-      btn.onclick = () => toggleCheckSp(i, btn);
-      spPicker.appendChild(btn);
-    }
-  } else { spWrap.style.display = 'none'; }
-  updateCheckDisplay();
-}
-
-function toggleCheckBall(n, btn, cfg) {
-  const idx = checkSel.indexOf(n);
-  if (idx>=0) { checkSel.splice(idx,1); btn.classList.remove(cfg.pickClass); }
-  else if (checkSel.length < cfg.pick) { checkSel.push(n); btn.classList.add(cfg.pickClass); }
-  else { showToast(`最多選 ${cfg.pick} 顆`); return; }
-  updateCheckDisplay();
-}
-
-function toggleCheckSp(n, btn) {
-  document.querySelectorAll('#check-sp-picker .pick-btn').forEach(b=>b.classList.remove('selected-sp'));
-  checkSpSel = checkSpSel===n ? null : n;
-  if (checkSpSel) btn.classList.add('selected-sp');
-  updateCheckDisplay();
-}
-
-function updateCheckDisplay() {
-  const type = currentType;
-  const cfg = TYPES[type];
-  let txt = checkSel.length>0 ? `已選: ${[...checkSel].sort((a,b)=>a-b).join(' ')}` : '尚未選號';
-  if (type==='hk' && checkSpSel) txt += ` | 特別號: ${checkSpSel}`;
-  txt += ` (${checkSel.length}/${cfg.pick})`;
-  document.getElementById('check-display').textContent = txt;
-}
-
-function checkTicket() {
-  const type = currentType;
-  const cfg = TYPES[type];
-  if (checkSel.length !== cfg.pick) { showToast(`請選擇 ${cfg.pick} 顆號碼`); return; }
-
-  const periodInput = document.getElementById('check-period-input').value.trim();
-  let target;
-  if (periodInput) {
-    target = DB[type].find(r => r.period === periodInput);
-    if (!target) { showToast('找不到該期資料'); return; }
-  } else {
-    target = DB[type][0];
-    if (!target) { showToast('尚無開獎資料'); return; }
-  }
-
-  const matched = checkSel.filter(n => (target.numbers||[]).includes(n)).length;
-  const spMatch = type==='hk' && checkSpSel && target.special===checkSpSel;
-  const color = TYPE_COLORS[type];
-
-  let emoji = matched>=cfg.pick ? '🏆' : matched>=4 ? '🎉' : matched>=2 ? '😊' : '😅';
-  let msg = matched>=cfg.pick ? '全中！恭喜！' : `對中 ${matched} 顆`;
-  if (spMatch) msg += ' + 特別號✨';
-
-  document.getElementById('check-result').innerHTML = `
-    <div class="check-result">
-      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;">對照第 ${target.period} 期 ${target.date||''}</div>
-      <div class="balls-row" style="justify-content:center;margin-bottom:12px;">
-        ${(target.numbers||[]).map(n=>`<div class="ball ball-sm ${checkSel.includes(n)?cfg.ballClass:'ball-gray'}">${n}</div>`).join('')}
-        ${target.special?`<div class="ball ball-sm ${(type==='hk'&&checkSpSel===target.special)?cfg.spClass:'ball-gray'}">${target.special}</div>`:''}
-      </div>
-      <div class="check-big">${emoji}</div>
-      <div class="check-msg" style="color:${color}">${msg}</div>
-      <div class="check-sub">開獎號碼：${(target.numbers||[]).join(' ')}${target.special?' 特別號:'+target.special:''}</div>
-    </div>`;
-}
-
-// ── ADMIN ──
-function updateAdminType() { renderAdminPanel(); }
-
-function renderAdminPanel() {
-  if (!window._isAdmin) return;
-  const type = document.getElementById('admin-type')?.value || 'hk';
-  const cfg = TYPES[type];
-  adminSel = []; adminSpSel = null;
-
-  const picker = document.getElementById('admin-picker');
-  if (!picker) return;
-  picker.innerHTML = '';
-  for (let i=1;i<=cfg.max;i++) {
-    const btn = document.createElement('button');
-    btn.className = 'pick-btn'; btn.textContent = i;
-    btn.onclick = () => toggleAdminBall(i, btn, cfg);
-    picker.appendChild(btn);
-  }
-
-  const spWrap = document.getElementById('admin-sp-wrap');
-  if (type === 'hk') {
-    spWrap.style.display = 'block';
-    const spPicker = document.getElementById('admin-sp-picker');
-    spPicker.innerHTML = '';
-    for (let i=1;i<=49;i++) {
-      const btn = document.createElement('button');
-      btn.className = 'pick-btn'; btn.textContent = i;
-      btn.onclick = () => toggleAdminSp(i, btn);
-      spPicker.appendChild(btn);
-    }
-  } else { spWrap.style.display = 'none'; }
-
-  const saveBtn = document.getElementById('admin-save-btn');
-  if (saveBtn) saveBtn.className = `btn ${TYPE_BTN[type]}`;
-
-  renderAdminHistory(type);
-  updateAdminDisplay();
-}
-
-function toggleAdminBall(n, btn, cfg) {
-  const idx = adminSel.indexOf(n);
-  if (idx>=0) { adminSel.splice(idx,1); btn.classList.remove(cfg.pickClass); }
-  else if (adminSel.length < cfg.pick) { adminSel.push(n); btn.classList.add(cfg.pickClass); }
-  else { showToast(`最多選 ${cfg.pick} 顆`); return; }
-  updateAdminDisplay();
-}
-
-function toggleAdminSp(n, btn) {
-  document.querySelectorAll('#admin-sp-picker .pick-btn').forEach(b=>b.classList.remove('selected-sp'));
-  adminSpSel = adminSpSel===n ? null : n;
-  if (adminSpSel) btn.classList.add('selected-sp');
-  updateAdminDisplay();
-}
-
-function updateAdminDisplay() {
-  const type = document.getElementById('admin-type')?.value || 'hk';
-  const cfg = TYPES[type];
-  let txt = adminSel.length>0 ? `已選: ${[...adminSel].sort((a,b)=>a-b).join(' ')}` : '尚未選號';
-  if (type==='hk' && adminSpSel) txt += ` | 特別號: ${adminSpSel}`;
-  txt += ` (${adminSel.length}/${cfg.pick})`;
-  const el = document.getElementById('admin-display');
-  if (el) el.textContent = txt;
-}
-
-async function saveAdminSingle() {
-  const type = document.getElementById('admin-type').value;
-  const period = document.getElementById('admin-period').value.trim();
-  const date = document.getElementById('admin-date').value.trim();
-  const cfg = TYPES[type];
-
-  if (!period) { showToast('請輸入期號'); return; }
-  if (adminSel.length !== cfg.pick) { showToast(`請選擇 ${cfg.pick} 顆號碼`); return; }
-  if (type==='hk' && !adminSpSel) { showToast('請選擇特別號'); return; }
-
-  const record = { period, date, numbers: [...adminSel].sort((a,b)=>a-b), type };
-  if (type==='hk') record.special = adminSpSel;
-
-  showOverlay('儲存中...');
-  try {
-    await saveRecord(type, record);
-    adminSel = []; adminSpSel = null;
-    document.getElementById('admin-period').value = '';
-    document.getElementById('admin-date').value = '';
-    renderAdminPanel();
-    renderAll();
-    showToast('✅ 已儲存！');
-  } catch(e) { showToast('失敗: ' + e.message); }
-  hideOverlay();
-}
-
-async function saveBulk() {
-  const type = document.getElementById('admin-type').value;
-  const cfg = TYPES[type];
-  const raw = document.getElementById('admin-bulk').value.trim();
-  if (!raw) { showToast('請輸入資料'); return; }
-
-  const lines = raw.split('\n').filter(l=>l.trim());
-  const records = [];
-
-  for (const line of lines) {
-    const parts = line.split(',').map(p=>p.trim());
-    if (parts.length < 2) continue;
-    const period = parts[0];
-    const nums = parts[1].split(/\s+/).map(Number).filter(n=>n>=1&&n<=cfg.max);
-    if (nums.length !== cfg.pick) continue;
-    const record = { period, numbers: nums.sort((a,b)=>a-b), type };
-    if (parts[2] && !isNaN(parseInt(parts[2]))) record.special = parseInt(parts[2]);
-    if (parts[3]) record.date = parts[3];
-    else if (parts[2] && isNaN(parseInt(parts[2]))) record.date = parts[2];
-    records.push(record);
-  }
-
-  if (records.length === 0) { showToast('無法解析資料，請檢查格式'); return; }
-
-  showOverlay(`儲存 ${records.length} 筆...`);
-  let saved = 0;
-  for (const r of records) {
-    try { await saveRecord(type, r); saved++; } catch(e) {}
-  }
-  renderAll();
-  renderAdminHistory(type);
-  document.getElementById('admin-bulk').value = '';
-  hideOverlay();
-  showToast(`✅ 已儲存 ${saved} 筆`);
-}
-
-function renderAdminHistory(type) {
-  const cfg = TYPES[type] || TYPES[currentType];
-  const data = DB[type] || DB[currentType];
-  const el = document.getElementById('admin-history-list');
-  if (!el) return;
-  if (data.length === 0) { el.innerHTML = '<div class="empty-state" style="padding:16px;">尚無資料</div>'; return; }
-  el.innerHTML = data.slice(0,20).map(r=>`
-    <div class="history-item">
-      <div class="history-left">
-        <div class="history-period">第 ${r.period} 期 ${r.date?'· '+r.date:''}</div>
-        <div class="balls-row">
-          ${(r.numbers||[]).map(n=>`<div class="ball ball-sm ${cfg.ballClass}">${n}</div>`).join('')}
-          ${r.special?`<div class="ball ball-sm ${cfg.spClass}">${r.special}</div>`:''}
-        </div>
-      </div>
-      <button class="btn-del" onclick="deleteRecord('${type}','${r.period}')">🗑</button>
-    </div>
-  `).join('');
-}
-
-// ── FIRESTORE CRUD ──
-async function saveRecord(type, record) {
-  const fb = window._fb;
-  const ref = fb.doc(fb.db, `lotteryData/${type}/draws`, record.period);
-  await fb.setDoc(ref, record);
-  DB[type] = DB[type].filter(r=>r.period!==record.period);
-  DB[type].unshift(record);
-  DB[type].sort((a,b)=>b.period.localeCompare(a.period));
-}
-
-async function deleteRecord(type, period) {
-  if (!window._isAdmin) { showToast('無權限'); return; }
-  const fb = window._fb;
-  await fb.deleteDoc(fb.doc(fb.db, `lotteryData/${type}/draws`, period));
-  DB[type] = DB[type].filter(r=>r.period!==period);
-  renderAll();
-  renderAdminHistory(document.getElementById('admin-type')?.value || type);
-  showToast('已刪除');
-}
-
-// ── TOAST ──
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2800);
-}
-
-document.addEventListener('DOMContentLoaded', () => showOverlay('初始化...'));
-</script>
-</body>
-</html>
