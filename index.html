@@ -705,7 +705,8 @@ async function loadData() {
       DB[type] = snap.docs.map(d => d.data());
     } catch(e) { DB[type] = []; }
   }
-  renderAll();
+  try { renderAll(); } catch(e) { console.error('renderAll error:', e); }
+  hideOverlay();
 }
 
 // ── SWITCH TYPE ──
@@ -1029,7 +1030,4 @@ function renderPredResults(type, cfg, ranked) {
 
 
 // ── CHART ──
-function onRangeChange(v) {
-  document.getElementById('range-val').textContent = v;
-  renderChart();
-}
+function onRangeChange(v) 
